@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: kumple-db
+    environment:
+      POSTGRES_DB: kumple
+      POSTGRES_USER: kumple
+      POSTGRES_PASSWORD: kumple
+    ports:
+      - "5433:5432"
+    volumes:
+      - kumple-pgdata:/var/lib/postgresql/data
+
+volumes:
+  kumple-pgdata:
