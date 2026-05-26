@@ -1,50 +1,75 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import PageLayout from '../components/layout/PageLayout';
-import Button from '../components/ui/Button';
-import Card from '../components/ui/Card';
+import RoomCodeBox from '../components/lobby/RoomCodeBox';
+import PlayerCard from '../components/lobby/PlayerCard';
+import GameSettingsSummary from '../components/lobby/GameSettingsSummary';
 import { mockRoom } from '../mocks/gameMock';
-import styles from './LobbyPage.module.css';
+import layout from '../styles/lobbyLayout.module.css';
 
 export default function LobbyPage() {
   const navigate = useNavigate();
   const room = mockRoom;
-  const isHost = true;
+
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(['Personal']);
+
+  function toggleCategory(cat: string) {
+    setSelectedCategories((prev) =>
+      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
+    );
+  }
+
+  const emptySlots = room.settings.maxPlayers - room.players.length;
+  const fillPct = (room.players.length / room.settings.maxPlayers) * 100;
 
   return (
-    <PageLayout>
-      <div className={styles.page}>
-        <div className={styles.header}>
-          <p className={styles.codeLabel}>Kod pokoju</p>
-          <p className={styles.code}>{room.code}</p>
-          <p className={styles.count}>
-            {room.players.length} / {room.settings.maxPlayers} graczy
-          </p>
+    <div className={layout.page}>
+      <div className={layout.columns}>
+
+        <div className={layout.left}>
+          <div className={layout.pageHeader}>
+            <div className={layout.titleRow}>
+              <h1 className={layout.title}>Game Lobby</h1>
+              <span className={layout.statusBadge}>Waiting for players</span>
+            </div>
+            <p className={layout.subtitle}>
+              Share the room code or invite link with your friends
+            </p>
+          </div>
+
+          <RoomCodeBox code={room.code} inviteLink={room.inviteLink} />
+
+          <div className={layout.playersSection}>
+            <div className={layout.playersHeader}>
+              <h2 className={layout.playersTitle}>
+                Players ({room.players.length}/{room.settings.maxPlayers})
+              </h2>
+              <div className={layout.progressTrack}>
+                <div className={layout.progressFill} style={{ width: `${fillPct}%` }} />
+              </div>
+            </div>
+
+            <div className={layout.playersGrid}>
+              {room.players.map((player) => (
+                <PlayerCard key={player.id} player={player} onKick={() => {}} />
+              ))}
+              {Array.from({ length: emptySlots }).map((_, i) => (
+                <PlayerCard key={`empty-${i}`} />
+              ))}
+            </div>
+          </div>
         </div>
 
-        <Card>
-          <ul className={styles.playerList}>
-            {room.players.map((player) => (
-              <li key={player.id} className={styles.playerRow}>
-                <span className={styles.nickname}>{player.nickname}</span>
-                <div className={styles.badges}>
-                  {player.isHost && <span className={styles.badge}>HOST</span>}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </Card>
-
-        <div className={styles.footer}>
-          {isHost ? (
-            <Button onClick={() => navigate('/game/question')}>Rozpocznij grę</Button>
-          ) : (
-            <p className={styles.waiting}>Czekanie na hosta...</p>
-          )}
-          <Button variant="ghost" onClick={() => navigate('/')}>
-            Opuść pokój
-          </Button>
+        <div className={layout.right}>
+          <GameSettingsSummary
+            settings={room.settings}
+            selectedCategories={selectedCategories}
+            onToggleCategory={toggleCategory}
+            onStartGame={() => navigate('/game/question')}
+            onCancel={() => navigate('/')}
+          />
         </div>
+
       </div>
-    </PageLayout>
+    </div>
   );
 }

@@ -1,12 +1,12 @@
-import type { Room, Question, RoundResult, GameSummary } from '../types/game';
+import type { Room, Question, RoundResult, GameSummary, ScoreEntry } from '../types/game';
 
 export const mockRoom: Room = {
   code: 'PARTY7',
   inviteLink: 'http://localhost:5173/join/PARTY7',
   settings: {
     maxPlayers: 8,
-    totalRounds: 5,
-    timeLimitSeconds: 20,
+    totalRounds: 12,
+    timeLimitSeconds: 36,
   },
   players: [
     { id: 'p1', nickname: 'Marek', isHost: true },
@@ -18,42 +18,53 @@ export const mockRoom: Room = {
 
 export const mockCurrentPlayerId = 'p1';
 
+// The player this round's question is about
+export const mockSelectedPlayerId = 'p2';
+
 export const mockQuestion: Question = {
-  id: 'q3',
-  roundNumber: 3,
-  totalRounds: 5,
-  text: 'Które miasto jest stolicą Australii?',
+  id: 'q2',
+  roundNumber: 2,
+  totalRounds: 12,
+  text: "What is Ania's morning beverage habit?",
   options: [
-    { id: 'a', text: 'Sydney' },
-    { id: 'b', text: 'Melbourne' },
-    { id: 'c', text: 'Canberra' },
-    { id: 'd', text: 'Brisbane' },
+    { id: 'a', text: 'Coffee every morning' },
+    { id: 'b', text: 'Tea occasionally' },
+    { id: 'c', text: 'Energy drinks daily' },
+    { id: 'd', text: 'Water only' },
   ],
-  correctOptionId: 'c',
-  timeLimitSeconds: 20,
+  correctOptionId: 'a',
+  timeLimitSeconds: 36,
 };
 
+// Live scoreboard during the question phase (before this round's results)
+export const mockCurrentScoreboard: ScoreEntry[] = [
+  { playerId: 'p1', nickname: 'Marek', totalScore: 30, rank: 1 },
+  { playerId: 'p2', nickname: 'Ania', totalScore: 25, rank: 2 },
+  { playerId: 'p3', nickname: 'Tomek', totalScore: 20, rank: 3 },
+  { playerId: 'p4', nickname: 'Kasia', totalScore: 10, rank: 4 },
+];
+
 export const mockRoundResult: RoundResult = {
-  roundNumber: 3,
-  totalRounds: 5,
+  roundNumber: 2,
+  totalRounds: 12,
   question: mockQuestion,
-  correctOptionId: 'c',
+  correctOptionId: 'a',
   playerAnswers: [
-    { playerId: 'p1', nickname: 'Marek', selectedOptionId: 'c', isCorrect: true, pointsEarned: 920 },
-    { playerId: 'p2', nickname: 'Ania', selectedOptionId: 'c', isCorrect: true, pointsEarned: 750 },
-    { playerId: 'p3', nickname: 'Tomek', selectedOptionId: 'a', isCorrect: false, pointsEarned: 0 },
+    { playerId: 'p1', nickname: 'Marek', selectedOptionId: 'a', isCorrect: true, pointsEarned: 920 },
+    { playerId: 'p2', nickname: 'Ania', selectedOptionId: 'a', isCorrect: true, pointsEarned: 750 },
+    { playerId: 'p3', nickname: 'Tomek', selectedOptionId: 'c', isCorrect: false, pointsEarned: 0 },
     { playerId: 'p4', nickname: 'Kasia', selectedOptionId: null, isCorrect: false, pointsEarned: 0 },
   ],
   scoreboard: [
-    { playerId: 'p1', nickname: 'Marek', totalScore: 2640, rank: 1 },
-    { playerId: 'p2', nickname: 'Ania', totalScore: 2410, rank: 2 },
-    { playerId: 'p3', nickname: 'Tomek', totalScore: 1100, rank: 3 },
-    { playerId: 'p4', nickname: 'Kasia', totalScore: 850, rank: 4 },
+    { playerId: 'p1', nickname: 'Marek', totalScore: 950, rank: 1 },
+    { playerId: 'p2', nickname: 'Ania', totalScore: 775, rank: 2 },
+    { playerId: 'p3', nickname: 'Tomek', totalScore: 20, rank: 3 },
+    { playerId: 'p4', nickname: 'Kasia', totalScore: 10, rank: 4 },
   ],
 };
 
 export const mockGameSummary: GameSummary = {
-  totalRounds: 5,
+  totalRounds: 12,
   finalRanking: [
     { playerId: 'p1', nickname: 'Marek', totalScore: 4350, rank: 1 },
     { playerId: 'p2', nickname: 'Ania', totalScore: 3900, rank: 2 },
