@@ -1,0 +1,114 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.roundLabel {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.questionText {
+  font-size: 1.2rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.correctLabel {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.correctAnswer {
+  color: #22c55e;
+  font-weight: 600;
+}
+
+.playerList,
+.standingsList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.playerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+}
+
+.playerInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nickname {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.answer {
+  font-size: 0.8rem;
+}
+
+.answerCorrect {
+  color: #22c55e;
+}
+
+.answerWrong {
+  color: var(--text-muted);
+}
+
+.points {
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 1rem;
+}
+
+.standingsLabel {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.standingRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+}
+
+.rank {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+  width: 28px;
+  flex-shrink: 0;
+}
+
+.standingNickname {
+  flex: 1;
+  font-weight: 500;
+}
+
+.totalScore {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}

@@ -1,0 +1,60 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.header {
+  text-align: center;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 800;
+}
+
+.subtitle {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-top: 4px;
+}
+
+.list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+}
+
+.winner {
+  border-color: var(--accent);
+}
+
+.rank {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+  width: 30px;
+  flex-shrink: 0;
+}
+
+.nickname {
+  flex: 1;
+  font-weight: 600;
+}
+
+.score {
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 1rem;
+}
