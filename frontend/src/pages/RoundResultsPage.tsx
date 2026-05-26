@@ -10,17 +10,28 @@ const OPTION_LABELS = ['A', 'B', 'C', 'D'];
 export default function RoundResultsPage() {
   const navigate = useNavigate();
   const result = mockRoundResult;
+  const { question } = result;
+
+  const correctOption = question.options.find((o) => o.id === result.correctOptionId);
+  const correctLabel = OPTION_LABELS[question.options.findIndex((o) => o.id === result.correctOptionId)];
+
+  function getAnswerLabel(selectedOptionId: string | null): string {
+    if (!selectedOptionId) return 'Brak odpowiedzi';
+    const index = question.options.findIndex((o) => o.id === selectedOptionId);
+    const option = question.options[index];
+    return `${OPTION_LABELS[index]}. ${option.text}`;
+  }
 
   return (
     <PageLayout wide>
       <div className={styles.page}>
         <div className={styles.header}>
-          <p className={styles.roundLabel}>Runda {result.roundNumber} — wyniki</p>
-          <h2 className={styles.questionText}>{result.questionText}</h2>
+          <p className={styles.roundLabel}>Runda {result.roundNumber} / {result.totalRounds} — wyniki</p>
+          <h2 className={styles.questionText}>{question.text}</h2>
           <p className={styles.correctLabel}>
             Poprawna odpowiedź:{' '}
             <span className={styles.correctAnswer}>
-              {OPTION_LABELS[result.correctIndex]}. {result.options[result.correctIndex]}
+              {correctLabel}. {correctOption?.text}
             </span>
           </p>
         </div>
@@ -32,13 +43,11 @@ export default function RoundResultsPage() {
                 <div className={styles.playerInfo}>
                   <span className={styles.nickname}>{pa.nickname}</span>
                   <span className={[styles.answer, pa.isCorrect ? styles.answerCorrect : styles.answerWrong].join(' ')}>
-                    {pa.answerIndex !== null
-                      ? `${OPTION_LABELS[pa.answerIndex]}. ${result.options[pa.answerIndex]}`
-                      : 'Brak odpowiedzi'}
+                    {getAnswerLabel(pa.selectedOptionId)}
                   </span>
                 </div>
                 <span className={styles.points}>
-                  {pa.isCorrect ? `+${pa.points}` : '0'}
+                  {pa.isCorrect ? `+${pa.pointsEarned}` : '0'}
                 </span>
               </li>
             ))}
@@ -48,7 +57,7 @@ export default function RoundResultsPage() {
         <div className={styles.standingsLabel}>Aktualna klasyfikacja</div>
         <Card>
           <ul className={styles.standingsList}>
-            {result.standings.map((s) => (
+            {result.scoreboard.map((s) => (
               <li key={s.playerId} className={styles.standingRow}>
                 <span className={styles.rank}>#{s.rank}</span>
                 <span className={styles.standingNickname}>{s.nickname}</span>

@@ -10,26 +10,26 @@ export default function QuestionPage() {
   const navigate = useNavigate();
   const question = mockQuestion;
 
-  const [selected, setSelected] = useState<number | null>(null);
-  const [timeLeft, setTimeLeft] = useState(question.timeLimit);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [timeLeft, setTimeLeft] = useState(question.timeLimitSeconds);
 
   useEffect(() => {
-    if (selected !== null) return;
+    if (selectedId !== null) return;
     if (timeLeft <= 0) {
       navigate('/game/results');
       return;
     }
     const id = setTimeout(() => setTimeLeft((t) => t - 1), 1000);
     return () => clearTimeout(id);
-  }, [timeLeft, selected, navigate]);
+  }, [timeLeft, selectedId, navigate]);
 
-  function handleSelect(index: number) {
-    if (selected !== null) return;
-    setSelected(index);
+  function handleSelect(optionId: string) {
+    if (selectedId !== null) return;
+    setSelectedId(optionId);
     setTimeout(() => navigate('/game/results'), 1000);
   }
 
-  const progress = (timeLeft / question.timeLimit) * 100;
+  const progress = (timeLeft / question.timeLimitSeconds) * 100;
 
   return (
     <PageLayout wide>
@@ -39,7 +39,7 @@ export default function QuestionPage() {
         </div>
 
         <div className={styles.meta}>
-          <span className={styles.round}>Runda 1</span>
+          <span className={styles.round}>Runda {question.roundNumber} / {question.totalRounds}</span>
           <span className={styles.timer}>{timeLeft}s</span>
         </div>
 
@@ -48,17 +48,17 @@ export default function QuestionPage() {
         <div className={styles.options}>
           {question.options.map((option, index) => (
             <button
-              key={index}
+              key={option.id}
               className={[
                 styles.option,
-                selected === index ? styles.selected : '',
-                selected !== null && index === question.correctIndex ? styles.correct : '',
+                selectedId === option.id ? styles.selected : '',
+                selectedId !== null && option.id === question.correctOptionId ? styles.correct : '',
               ].filter(Boolean).join(' ')}
-              onClick={() => handleSelect(index)}
-              disabled={selected !== null}
+              onClick={() => handleSelect(option.id)}
+              disabled={selectedId !== null}
             >
               <span className={styles.optionLabel}>{OPTION_LABELS[index]}</span>
-              <span className={styles.optionText}>{option}</span>
+              <span className={styles.optionText}>{option.text}</span>
             </button>
           ))}
         </div>

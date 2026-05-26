@@ -17,7 +17,7 @@ export default function LobbyPage() {
           <p className={styles.codeLabel}>Kod pokoju</p>
           <p className={styles.code}>{room.code}</p>
           <p className={styles.count}>
-            {room.players.length} / {room.maxPlayers} graczy
+            {room.players.length} / {room.settings.maxPlayers} graczy
           </p>
         </div>
 

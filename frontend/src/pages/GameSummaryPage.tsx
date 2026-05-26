@@ -7,7 +7,7 @@ import styles from './GameSummaryPage.module.css';
 
 export default function GameSummaryPage() {
   const navigate = useNavigate();
-  const { standings, totalRounds } = mockGameSummary;
+  const { finalRanking, totalRounds } = mockGameSummary;
 
   return (
     <PageLayout>
@@ -19,7 +19,7 @@ export default function GameSummaryPage() {
 
         <Card>
           <ul className={styles.list}>
-            {standings.map((player) => (
+            {finalRanking.map((player) => (
               <li key={player.playerId} className={[styles.row, player.rank === 1 ? styles.winner : ''].join(' ')}>
                 <span className={styles.rank}>#{player.rank}</span>
                 <span className={styles.nickname}>{player.nickname}</span>

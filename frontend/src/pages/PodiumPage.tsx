@@ -9,7 +9,7 @@ const PLACE_LABELS = ['🥇', '🥈', '🥉'];
 
 export default function PodiumPage() {
   const navigate = useNavigate();
-  const top3 = mockGameSummary.standings.slice(0, 3);
+  const top3 = mockGameSummary.finalRanking.slice(0, 3);
 
   return (
     <PageLayout>
