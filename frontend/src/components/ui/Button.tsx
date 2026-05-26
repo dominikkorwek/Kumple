@@ -5,10 +5,23 @@ type Variant = 'primary' | 'secondary' | 'ghost';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
+  fullWidth?: boolean;
 }
 
-export default function Button({ variant = 'primary', className, children, ...props }: ButtonProps) {
-  const classes = [styles.btn, styles[variant], className].filter(Boolean).join(' ');
+export default function Button({
+  variant = 'primary',
+  fullWidth = true,
+  className,
+  children,
+  ...props
+}: ButtonProps) {
+  const classes = [
+    styles.btn,
+    styles[variant],
+    fullWidth ? styles.fullWidth : '',
+    className,
+  ].filter(Boolean).join(' ');
+
   return (
     <button className={classes} {...props}>
       {children}
