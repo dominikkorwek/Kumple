@@ -26,6 +26,9 @@ public class Room {
     @OrderBy("joinedAt ASC")
     private List<Player> players = new ArrayList<>();
 
+    @OneToOne(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true)
+    private GameSession gameSession;
+
     protected Room() {}
 
     public Room(String code, int maxPlayers) {
@@ -39,6 +42,8 @@ public class Room {
     public Instant getCreatedAt() { return createdAt; }
     public List<Player> getPlayers() { return players; }
     public int getMaxPlayers() { return maxPlayers; }
+    public GameSession getGameSession() { return gameSession; }
+    public void setGameSession(GameSession gameSession) { this.gameSession = gameSession; }
 
     public boolean isFull() {
         return players.size() >= maxPlayers;
