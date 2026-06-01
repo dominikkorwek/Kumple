@@ -1,0 +1,110 @@
+.slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  width: 140px;
+  flex-shrink: 0;
+}
+
+.winnerSlot {
+  /* winner is rendered taller via block height */
+}
+
+/* ── Info area (above block) ── */
+
+.info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding-bottom: var(--space-2);
+}
+
+.avatarWrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+}
+
+.avatarWinner {
+  width: 56px;
+  height: 56px;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.crownBadge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #000;
+}
+
+.name {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.nameWinner {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.pts {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.ptsWinner {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+/* ── Podium block ── */
+
+.block {
+  width: 100%;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.blockWinner {
+  background: rgba(249, 115, 22, 0.18);
+  border-color: var(--accent);
+}
+
+.placeLabel {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.blockWinner .placeLabel {
+  color: var(--accent);
+}

@@ -71,11 +71,12 @@ export const mockRoundResult: RoundResult = {
 };
 
 export const mockGameSummary: GameSummary = {
-  totalRounds: 12,
+  totalRounds: 30,
+  gameDurationMinutes: 6,
   finalRanking: [
-    { playerId: 'p1', nickname: 'Marek', totalScore: 4350, rank: 1 },
-    { playerId: 'p2', nickname: 'Ania', totalScore: 3900, rank: 2 },
-    { playerId: 'p3', nickname: 'Tomek', totalScore: 2100, rank: 3 },
-    { playerId: 'p4', nickname: 'Kasia', totalScore: 1450, rank: 4 },
+    { playerId: 'p1', nickname: 'Marek', totalScore: 100, rank: 1, roundsWon: 10 },
+    { playerId: 'p2', nickname: 'Ania', totalScore: 90, rank: 2, roundsWon: 9 },
+    { playerId: 'p3', nickname: 'Tomek', totalScore: 70, rank: 3, roundsWon: 7 },
+    { playerId: 'p4', nickname: 'Kasia', totalScore: 40, rank: 4, roundsWon: 4 },
   ],
 };

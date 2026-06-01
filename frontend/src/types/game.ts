@@ -38,6 +38,7 @@ export interface ScoreEntry {
   totalScore: number;
   rank: number;
   rankChange?: number; // positive = moved up N positions
+  roundsWon?: number;
 }
 
 export interface VoteCount {
@@ -67,5 +68,6 @@ export interface PlayerRoundAnswer {
 
 export interface GameSummary {
   totalRounds: number;
+  gameDurationMinutes?: number;
   finalRanking: ScoreEntry[];
 }
