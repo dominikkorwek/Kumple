@@ -5,10 +5,8 @@ import Card from '../components/ui/Card';
 import RoundHeader from '../components/question/RoundHeader';
 import AnswerOptionCard from '../components/question/AnswerOptionCard';
 import Scoreboard from '../components/question/Scoreboard';
-import { mockQuestion, mockRoom, mockSelectedPlayerId, mockCurrentScoreboard } from '../mocks/gameMock';
+import { mockQuestion, mockRoom, mockSelectedPlayerId, mockCurrentScoreboard, WIN_SCORE } from '../mocks/gameMock';
 import styles from './QuestionPage.module.css';
-
-const WIN_CONDITION = 100;
 const MOCK_ANSWERED_COUNT = 2;
 const MOCK_TOTAL_PLAYERS = 3;
 
@@ -106,7 +104,7 @@ export default function QuestionPage() {
           {/* ── Sidebar ───────────────────────────── */}
           <div className={styles.sidebar}>
 
-            <Scoreboard entries={mockCurrentScoreboard} winCondition={WIN_CONDITION} />
+            <Scoreboard entries={mockCurrentScoreboard} winCondition={WIN_SCORE} />
 
             <Card padded={false}>
               <div className={styles.sideSection}>
