@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import CreateRoomPage from './pages/CreateRoomPage';
+import JoinRoomPage from './pages/JoinRoomPage';
 import LobbyPage from './pages/LobbyPage';
 import QuestionPage from './pages/QuestionPage';
 import RoundResultsPage from './pages/RoundResultsPage';
@@ -13,6 +14,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/create-room" element={<CreateRoomPage />} />
+        <Route path="/join" element={<JoinRoomPage />} />
         <Route path="/lobby" element={<LobbyPage />} />
         <Route path="/game/question" element={<QuestionPage />} />
         <Route path="/game/results" element={<RoundResultsPage />} />

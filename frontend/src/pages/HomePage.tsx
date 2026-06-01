@@ -34,8 +34,9 @@ export default function HomePage() {
   const [joinCode, setJoinCode] = useState('');
 
   function handleJoin() {
-    if (joinCode.trim()) {
-      navigate('/lobby');
+    const code = joinCode.trim();
+    if (code) {
+      navigate(`/join?code=${encodeURIComponent(code)}`);
     }
   }
 
