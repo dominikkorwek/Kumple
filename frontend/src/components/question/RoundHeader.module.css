@@ -35,7 +35,7 @@
   border-radius: 2px;
 }
 
-/* center time progress bar */
+/* center column stretches to fill the header grid middle cell */
 .timeTrack {
   height: 3px;
   background: var(--border);

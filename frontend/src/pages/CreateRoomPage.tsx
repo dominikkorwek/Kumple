@@ -56,7 +56,6 @@ export default function CreateRoomPage() {
     <div className={layout.page}>
       <div className={layout.columns}>
 
-        {/* ── Left: form ────────────────────────────── */}
         <div className={layout.left}>
 
           <button className={styles.backLink} onClick={() => navigate('/')}>
@@ -68,7 +67,6 @@ export default function CreateRoomPage() {
             <p className={styles.subtitle}>Configure game settings and generate invite code</p>
           </div>
 
-          {/* Question Categories */}
           <div className={styles.formSection}>
             <h2 className={styles.sectionTitle}>Question Categories</h2>
             <div className={styles.checkboxGrid}>
@@ -86,7 +84,6 @@ export default function CreateRoomPage() {
             </div>
           </div>
 
-          {/* Excluded Categories */}
           <div className={styles.formSection}>
             <h2 className={styles.sectionTitle}>Excluded Categories (Optional)</h2>
             <div className={styles.checkboxGrid}>
@@ -104,7 +101,6 @@ export default function CreateRoomPage() {
             </div>
           </div>
 
-          {/* Game Settings */}
           <div className={styles.formSection}>
             <h2 className={styles.sectionTitle}>Game Settings</h2>
             <div className={styles.inputs}>
@@ -137,7 +133,6 @@ export default function CreateRoomPage() {
 
         </div>
 
-        {/* ── Right: generated room + summary ───────── */}
         <div className={layout.right}>
 
           <Card padded={false}>
@@ -164,7 +159,7 @@ export default function CreateRoomPage() {
                 </div>
               </div>
 
-              <Button onClick={() => navigate('/lobby')}>Create &amp; Enter Lobby</Button>
+              <Button onClick={() => navigate(`/join?code=${mockRoom.code}&host=true`)}>Create &amp; Enter Lobby</Button>
             </div>
           </Card>
 

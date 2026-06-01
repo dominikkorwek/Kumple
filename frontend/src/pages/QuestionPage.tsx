@@ -50,7 +50,6 @@ export default function QuestionPage() {
 
         <div className={styles.columns}>
 
-          {/* ── Main ──────────────────────────────── */}
           <div className={styles.main}>
 
             <Card padded={false}>
@@ -101,7 +100,6 @@ export default function QuestionPage() {
             </div>
           </div>
 
-          {/* ── Sidebar ───────────────────────────── */}
           <div className={styles.sidebar}>
 
             <Scoreboard entries={mockCurrentScoreboard} winCondition={WIN_SCORE} />

@@ -1,5 +1,3 @@
-/* ── Page header ── */
-
 .pageHeader {
   display: flex;
   flex-direction: column;
@@ -34,8 +32,6 @@
   color: var(--text-muted);
 }
 
-/* ── Winner card ── */
-
 .winnerCard {
   border: 1px solid var(--accent);
   border-radius: var(--radius-md);
@@ -66,8 +62,6 @@
   font-weight: 500;
   color: var(--text-primary);
 }
-
-/* ── Final Rankings ── */
 
 .rankingsPanel {
   padding: var(--space-4);
@@ -168,8 +162,6 @@
   flex-shrink: 0;
 }
 
-/* ── Action buttons ── */
-
 .actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -181,8 +173,6 @@
   align-items: center;
   gap: var(--space-2);
 }
-
-/* ── Sidebar panels ── */
 
 .panel {
   padding: var(--space-4);
@@ -198,8 +188,6 @@
   letter-spacing: 1px;
   color: var(--text-muted);
 }
-
-/* ── Game Statistics ── */
 
 .stats {
   display: flex;
@@ -240,8 +228,6 @@
   color: var(--text-primary);
 }
 
-/* ── Score Breakdown ── */
-
 .breakdown {
   display: flex;
   flex-direction: column;
@@ -270,8 +256,6 @@
   color: var(--accent);
 }
 
-/* ── Next Actions ── */
-
 .nextActions {
   list-style: none;
   display: flex;
@@ -291,4 +275,12 @@
   position: absolute;
   left: 0;
   color: var(--accent);
+}
+
+@media (max-width: 480px) {
+  .title { font-size: 1.6rem; }
+
+  .actions {
+    grid-template-columns: 1fr;
+  }
 }

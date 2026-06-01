@@ -1,15 +1,12 @@
-/* ── Avatar display circle (used standalone too) ── */
-
+/* animal svgs use currentColor, so they render white against the colored background */
 .display {
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: white; /* animal SVGs use currentColor → renders white */
+  color: white;
 }
-
-/* ── Picker shell ── */
 
 .picker {
   display: flex;
@@ -29,8 +26,6 @@
   color: var(--text-muted);
 }
 
-/* ── Body: preview + controls ── */
-
 .body {
   display: flex;
   align-items: center;
@@ -44,8 +39,6 @@
   gap: var(--space-3);
   min-width: 0;
 }
-
-/* ── Animal grid ── */
 
 .animalGrid {
   display: grid;
@@ -78,8 +71,6 @@
   color: var(--accent);
 }
 
-/* ── Color swatches ── */
-
 .colorRow {
   display: flex;
   gap: var(--space-2);
@@ -105,4 +96,15 @@
   border-color: var(--text-primary);
   transform: scale(1.2);
   box-shadow: 0 0 0 1px var(--bg-elevated);
+}
+
+@media (max-width: 460px) {
+  .body {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .animalGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }

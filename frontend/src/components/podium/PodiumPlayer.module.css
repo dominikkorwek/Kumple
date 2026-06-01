@@ -3,7 +3,7 @@
   flex-direction: column;
   align-items: center;
   gap: 0;
-  width: 140px;
+  width: clamp(90px, 28vw, 140px);
   flex-shrink: 0;
 }
 
@@ -107,4 +107,40 @@
 
 .blockWinner .placeLabel {
   color: var(--accent);
+}
+
+/* ── Place heights ── */
+
+.block1 { height: 100px; }
+.block2 { height: 70px; }
+.block3 { height: 50px; }
+
+/* ── Responsive ── */
+
+@media (max-width: 480px) {
+  .block1 { height: 64px; }
+  .block2 { height: 44px; }
+  .block3 { height: 32px; }
+
+  .avatar {
+    width: 36px;
+    height: 36px;
+  }
+
+  .avatarWinner {
+    width: 46px;
+    height: 46px;
+  }
+
+  .crownBadge {
+    width: 18px;
+    height: 18px;
+    top: -6px;
+    right: -6px;
+  }
+
+  .name { font-size: 0.78rem; }
+  .nameWinner { font-size: 0.85rem; }
+  .pts, .ptsWinner { font-size: 0.72rem; }
+  .placeLabel { font-size: 0.85rem; }
 }

@@ -36,6 +36,7 @@ export default function JoinRoomPage() {
   const [params] = useSearchParams();
 
   const code = params.get('code') ?? mockRoom.code;
+  const isHost = params.get('host') === 'true';
   const room = mockRoom;
 
   const [nickname, setNickname] = useState('');
@@ -56,31 +57,31 @@ export default function JoinRoomPage() {
   }
 
   const isFull = room.players.length >= room.settings.maxPlayers;
-  const emptySlots = room.settings.maxPlayers - room.players.length - 1; // -1 for the joining user
+  const emptySlots = room.settings.maxPlayers - room.players.length - 1;
 
   return (
     <div className={layout.page}>
       <div className={layout.columns}>
 
-        {/* ── Left: join form ── */}
         <div className={layout.left}>
 
-          <button className={styles.backLink} onClick={() => navigate('/')}>
-            ← Back to home
+          <button className={styles.backLink} onClick={() => navigate(isHost ? '/create-room' : '/')}>
+            ← {isHost ? 'Back to room setup' : 'Back to home'}
           </button>
 
           <div className={styles.pageHeader}>
             <span className={styles.badge}>
               <DoorIcon />
-              Join Room
+              {isHost ? 'Your Profile' : 'Join Room'}
             </span>
-            <h1 className={styles.title}>Join Game Room</h1>
+            <h1 className={styles.title}>{isHost ? 'Set Up Your Profile' : 'Join Game Room'}</h1>
             <p className={styles.subtitle}>
-              Enter your nickname and pick an avatar to join the session
+              {isHost
+                ? 'Pick an avatar and nickname before entering your lobby'
+                : 'Enter your nickname and pick an avatar to join the session'}
             </p>
           </div>
 
-          {/* Room code confirmation */}
           <Card padded={false}>
             <div className={styles.roomConfirm}>
               <span className={styles.roomLabel}>Room code</span>
@@ -89,10 +90,8 @@ export default function JoinRoomPage() {
             </div>
           </Card>
 
-          {/* Avatar picker */}
           <AvatarPicker value={avatar} onChange={setAvatar} />
 
-          {/* Nickname */}
           <Input
             label="Your nickname"
             placeholder="e.g. Marek"
@@ -108,13 +107,12 @@ export default function JoinRoomPage() {
             autoFocus
           />
 
-          <Button onClick={handleJoin} disabled={!nickname.trim() || isFull}>
-            Join Game
+          <Button onClick={handleJoin} disabled={!nickname.trim() || (!isHost && isFull)}>
+            {isHost ? 'Enter Lobby' : 'Join Game'}
           </Button>
 
         </div>
 
-        {/* ── Right: room preview ── */}
         <div className={layout.right}>
 
           <Card padded={false}>
@@ -130,7 +128,6 @@ export default function JoinRoomPage() {
 
               <div className={styles.playerList}>
 
-                {/* Existing players */}
                 {room.players.map((p) => (
                   <div key={p.id} className={styles.playerRow}>
                     <div className={styles.playerAvatar}>
@@ -141,7 +138,6 @@ export default function JoinRoomPage() {
                   </div>
                 ))}
 
-                {/* Live preview of the joining user */}
                 <div className={`${styles.playerRow} ${styles.youRow}`}>
                   <AvatarDisplay
                     animalId={avatar.animalId}
@@ -151,10 +147,9 @@ export default function JoinRoomPage() {
                   <span className={styles.playerName}>
                     {nickname.trim() || 'You'}
                   </span>
-                  <span className={styles.youTag}>Joining…</span>
+                  <span className={styles.youTag}>{isHost ? 'Host' : 'Joining…'}</span>
                 </div>
 
-                {/* Remaining empty slots */}
                 {emptySlots > 0 &&
                   Array.from({ length: emptySlots }).map((_, i) => (
                     <div key={`empty-${i}`} className={`${styles.playerRow} ${styles.emptyRow}`}>

@@ -25,7 +25,6 @@
   width: 100%;
 }
 
-/* focus ring for keyboard navigation */
 .btn:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
@@ -40,7 +39,6 @@
   cursor: not-allowed;
 }
 
-/* primary */
 .primary {
   background: var(--accent);
   color: #fff;
@@ -57,7 +55,6 @@
   border-color: var(--accent-active);
 }
 
-/* secondary */
 .secondary {
   background: transparent;
   color: var(--text-secondary);
@@ -70,7 +67,6 @@
   background: var(--accent-subtle);
 }
 
-/* ghost */
 .ghost {
   background: transparent;
   color: var(--text-muted);

@@ -23,7 +23,7 @@ function CrownIcon() {
   );
 }
 
-// Classic podium order: 2nd on left, 1st in center, 3rd on right
+// 2nd left, 1st center, 3rd right
 const PODIUM_ORDER: Array<1 | 2 | 3> = [2, 1, 3];
 
 export default function PodiumPage() {
@@ -36,7 +36,6 @@ export default function PodiumPage() {
     <div className={layout.page}>
       <div className={layout.columns}>
 
-        {/* ── Left: podium ── */}
         <div className={layout.left}>
           <div className={styles.pageHeader}>
             <span className={styles.badge}>
@@ -63,7 +62,6 @@ export default function PodiumPage() {
           <Button onClick={() => navigate('/game/summary')}>View Final Summary</Button>
         </div>
 
-        {/* ── Right: sidebar ── */}
         <div className={layout.right}>
           <Card padded={false}>
             <div className={styles.panel}>

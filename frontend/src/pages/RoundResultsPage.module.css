@@ -26,8 +26,6 @@
   line-height: 1.2;
 }
 
-/* ── Why section ── */
-
 .whySection {
   display: flex;
   flex-direction: column;
@@ -53,8 +51,6 @@
   line-height: 1.6;
 }
 
-/* ── Sidebar panels ── */
-
 .panel {
   padding: var(--space-4);
 }
@@ -67,8 +63,6 @@
   color: var(--text-muted);
   margin-bottom: var(--space-3);
 }
-
-/* ── Progress to win ── */
 
 .progressRow {
   display: flex;

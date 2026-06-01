@@ -5,8 +5,6 @@ import Card from '../components/ui/Card';
 import layout from '../styles/lobbyLayout.module.css';
 import styles from './GameSummaryPage.module.css';
 
-/* ── Icons ─────────────────────────────────────────────────────────────── */
-
 function TrophyIcon({ size = 16 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
@@ -48,8 +46,6 @@ function HomeIcon() {
   );
 }
 
-/* ── Page ───────────────────────────────────────────────────────────────── */
-
 export default function GameSummaryPage() {
   const navigate = useNavigate();
   const { finalRanking, totalRounds, gameDurationMinutes } = mockGameSummary;
@@ -59,10 +55,7 @@ export default function GameSummaryPage() {
     <div className={layout.page}>
       <div className={layout.columns}>
 
-        {/* ── Left: main content ── */}
         <div className={layout.left}>
-
-          {/* Header */}
           <div className={styles.pageHeader}>
             <span className={styles.badge}>
               <TrophyIcon size={13} />
@@ -72,7 +65,6 @@ export default function GameSummaryPage() {
             <p className={styles.subtitle}>Thanks for playing PartyWire Game</p>
           </div>
 
-          {/* Winner card */}
           <div className={styles.winnerCard}>
             <span className={styles.winnerTrophy}>
               <TrophyIcon size={40} />
@@ -81,7 +73,6 @@ export default function GameSummaryPage() {
             <p className={styles.winnerPts}>{winner.totalScore} points</p>
           </div>
 
-          {/* Final Rankings */}
           <Card padded={false}>
             <div className={styles.rankingsPanel}>
               <p className={styles.rankingsTitle}>Final Rankings</p>
@@ -110,7 +101,6 @@ export default function GameSummaryPage() {
             </div>
           </Card>
 
-          {/* Action buttons */}
           <div className={styles.actions}>
             <Button onClick={() => navigate('/lobby')}>
               <span className={styles.btnInner}><PlayIcon /> Play Again</span>
@@ -122,10 +112,7 @@ export default function GameSummaryPage() {
 
         </div>
 
-        {/* ── Right: sidebar ── */}
         <div className={layout.right}>
-
-          {/* Game Statistics */}
           <Card padded={false}>
             <div className={styles.panel}>
               <p className={styles.panelLabel}>Game Statistics</p>
@@ -155,7 +142,6 @@ export default function GameSummaryPage() {
             </div>
           </Card>
 
-          {/* Score Breakdown */}
           <Card padded={false}>
             <div className={styles.panel}>
               <p className={styles.panelLabel}>Score Breakdown</p>
@@ -178,7 +164,6 @@ export default function GameSummaryPage() {
             </div>
           </Card>
 
-          {/* Next Actions */}
           <Card padded={false}>
             <div className={styles.panel}>
               <p className={styles.panelLabel}>Next Actions</p>

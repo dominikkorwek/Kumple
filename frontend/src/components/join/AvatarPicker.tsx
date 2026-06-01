@@ -1,13 +1,9 @@
 import styles from './AvatarPicker.module.css';
 
-/* ── Types ─────────────────────────────────────────────────────────────── */
-
 export interface AvatarConfig {
   animalId: string;
   color: string;
 }
-
-/* ── Color palette ──────────────────────────────────────────────────────── */
 
 export const AVATAR_COLORS = [
   { id: 'orange', value: '#f97316' },
@@ -17,9 +13,6 @@ export const AVATAR_COLORS = [
   { id: 'pink',   value: '#ec4899' },
   { id: 'slate',  value: '#64748b' },
 ];
-
-/* ── Animal SVGs (Lucide icons, stroke-based) ───────────────────────────── */
-// stroke="currentColor" picks up white from the .display container.
 
 const SVG_PROPS = {
   viewBox: '0 0 24 24',
@@ -107,8 +100,6 @@ function FishIcon() {
   );
 }
 
-/* ── Animal registry ────────────────────────────────────────────────────── */
-
 export const ANIMALS = [
   { id: 'cat',   label: 'Cat',   Icon: CatIcon },
   { id: 'panda', label: 'Panda', Icon: PandaIcon },
@@ -117,8 +108,6 @@ export const ANIMALS = [
   { id: 'bird',  label: 'Bird',  Icon: BirdIcon },
   { id: 'fish',  label: 'Fish',  Icon: FishIcon },
 ];
-
-/* ── AvatarDisplay (reusable elsewhere) ─────────────────────────────────── */
 
 interface AvatarDisplayProps {
   animalId: string;
@@ -141,8 +130,6 @@ export function AvatarDisplay({ animalId, color, size = 48 }: AvatarDisplayProps
   );
 }
 
-/* ── AvatarPicker ───────────────────────────────────────────────────────── */
-
 interface AvatarPickerProps {
   value: AvatarConfig;
   onChange: (config: AvatarConfig) => void;
@@ -154,11 +141,9 @@ export default function AvatarPicker({ value, onChange }: AvatarPickerProps) {
       <p className={styles.sectionLabel}>Your Avatar</p>
 
       <div className={styles.body}>
-        {/* Live preview */}
         <AvatarDisplay animalId={value.animalId} color={value.color} size={64} />
 
         <div className={styles.controls}>
-          {/* Animal selection */}
           <div className={styles.animalGrid}>
             {ANIMALS.map(({ id, label, Icon }) => (
               <button
@@ -177,7 +162,6 @@ export default function AvatarPicker({ value, onChange }: AvatarPickerProps) {
             ))}
           </div>
 
-          {/* Color swatches */}
           <div className={styles.colorRow}>
             {AVATAR_COLORS.map(({ id, value: hex }) => (
               <button

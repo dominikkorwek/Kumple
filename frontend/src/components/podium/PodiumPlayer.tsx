@@ -1,7 +1,7 @@
 import type { ScoreEntry } from '../../types/game';
 import styles from './PodiumPlayer.module.css';
 
-const BLOCK_HEIGHT: Record<1 | 2 | 3, number> = { 1: 100, 2: 70, 3: 50 };
+const BLOCK_CLASS: Record<1 | 2 | 3, string> = { 1: 'block1', 2: 'block2', 3: 'block3' };
 
 function PersonIcon({ size }: { size: number }) {
   return (
@@ -27,11 +27,9 @@ interface PodiumPlayerProps {
 
 export default function PodiumPlayer({ player, place }: PodiumPlayerProps) {
   const isWinner = place === 1;
-  const blockHeight = BLOCK_HEIGHT[place];
 
   return (
     <div className={`${styles.slot} ${isWinner ? styles.winnerSlot : ''}`}>
-      {/* Avatar + info above the block */}
       <div className={styles.info}>
         <div className={styles.avatarWrap}>
           <div className={`${styles.avatar} ${isWinner ? styles.avatarWinner : ''}`}>
@@ -51,10 +49,12 @@ export default function PodiumPlayer({ player, place }: PodiumPlayerProps) {
         </span>
       </div>
 
-      {/* The podium block */}
       <div
-        className={`${styles.block} ${isWinner ? styles.blockWinner : ''}`}
-        style={{ height: blockHeight }}
+        className={[
+          styles.block,
+          styles[BLOCK_CLASS[place]],
+          isWinner ? styles.blockWinner : '',
+        ].join(' ')}
       >
         <span className={styles.placeLabel}>#{place}</span>
       </div>

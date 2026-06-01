@@ -20,7 +20,6 @@ export default function RoundResultsPage() {
     <div className={layout.page}>
       <div className={layout.columns}>
 
-        {/* ── Left: main results ── */}
         <div className={layout.left}>
           <div className={styles.pageHeader}>
             <span className={styles.roundBadge}>
@@ -44,7 +43,6 @@ export default function RoundResultsPage() {
           <Button onClick={() => navigate('/game/podium')}>Continue to Next Round</Button>
         </div>
 
-        {/* ── Right: sidebar ── */}
         <div className={layout.right}>
           <Card padded={false}>
             <div className={styles.panel}>

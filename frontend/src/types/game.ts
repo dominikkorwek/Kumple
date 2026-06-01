@@ -37,7 +37,7 @@ export interface ScoreEntry {
   nickname: string;
   totalScore: number;
   rank: number;
-  rankChange?: number; // positive = moved up N positions
+  rankChange?: number; // positive = moved up, negative = moved down
   roundsWon?: number;
 }
 

@@ -13,8 +13,6 @@
   color: var(--text-muted);
 }
 
-/* ── Categories ─── */
-
 .categoriesBlock {
   display: flex;
   flex-direction: column;
@@ -62,8 +60,6 @@
   color: var(--accent-hover);
 }
 
-/* ── Setting rows ─── */
-
 .settingRows {
   display: flex;
   flex-direction: column;
@@ -88,8 +84,6 @@
   font-weight: 600;
   color: var(--text-primary);
 }
-
-/* ── Real time sync ─── */
 
 .syncRow {
   display: flex;
@@ -122,8 +116,6 @@
   color: var(--text-muted);
   line-height: 1.5;
 }
-
-/* ── Host controls ─── */
 
 .controlsList {
   list-style: none;

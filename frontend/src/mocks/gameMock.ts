@@ -20,7 +20,6 @@ export const mockRoom: Room = {
 
 export const mockCurrentPlayerId = 'p1';
 
-// The player this round's question is about
 export const mockSelectedPlayerId = 'p2';
 
 export const mockQuestion: Question = {
@@ -38,7 +37,6 @@ export const mockQuestion: Question = {
   timeLimitSeconds: 36,
 };
 
-// Live scoreboard during the question phase (before this round's results)
 export const mockCurrentScoreboard: ScoreEntry[] = [
   { playerId: 'p1', nickname: 'Marek', totalScore: 30, rank: 1 },
   { playerId: 'p2', nickname: 'Ania', totalScore: 25, rank: 2 },
