@@ -1,74 +1,78 @@
 import { useNavigate } from 'react-router-dom';
-import PageLayout from '../components/layout/PageLayout';
+import { mockRoundResult, WIN_SCORE } from '../mocks/gameMock';
+import WinnerCard from '../components/results/WinnerCard';
+import VoteDistribution from '../components/results/VoteDistribution';
+import UpdatedRankings from '../components/results/UpdatedRankings';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
-import { mockRoundResult } from '../mocks/gameMock';
+import layout from '../styles/lobbyLayout.module.css';
 import styles from './RoundResultsPage.module.css';
-
-const OPTION_LABELS = ['A', 'B', 'C', 'D'];
 
 export default function RoundResultsPage() {
   const navigate = useNavigate();
   const result = mockRoundResult;
-  const { question } = result;
 
-  const correctOption = question.options.find((o) => o.id === result.correctOptionId);
-  const correctLabel = OPTION_LABELS[question.options.findIndex((o) => o.id === result.correctOptionId)];
-
-  function getAnswerLabel(selectedOptionId: string | null): string {
-    if (!selectedOptionId) return 'Brak odpowiedzi';
-    const index = question.options.findIndex((o) => o.id === selectedOptionId);
-    const option = question.options[index];
-    return `${OPTION_LABELS[index]}. ${option.text}`;
-  }
+  const winners = result.playerAnswers.filter((pa) => pa.isCorrect);
+  const leader = result.scoreboard[0];
+  const leadPct = Math.min((leader.totalScore / WIN_SCORE) * 100, 100);
 
   return (
-    <PageLayout wide>
-      <div className={styles.page}>
-        <div className={styles.header}>
-          <p className={styles.roundLabel}>Runda {result.roundNumber} / {result.totalRounds} — wyniki</p>
-          <h2 className={styles.questionText}>{question.text}</h2>
-          <p className={styles.correctLabel}>
-            Poprawna odpowiedź:{' '}
-            <span className={styles.correctAnswer}>
-              {correctLabel}. {correctOption?.text}
+    <div className={layout.page}>
+      <div className={layout.columns}>
+
+        {/* ── Left: main results ── */}
+        <div className={layout.left}>
+          <div className={styles.pageHeader}>
+            <span className={styles.roundBadge}>
+              Round {result.roundNumber} Complete
             </span>
-          </p>
+            <h1 className={styles.title}>Round Results</h1>
+          </div>
+
+          <WinnerCard winningAnswerText={result.winningAnswerText} winners={winners} />
+
+          <div className={styles.whySection}>
+            <p className={styles.whyTitle}>Why this answer won</p>
+            <div className={styles.whyBox}>
+              <p className={styles.whyText}>
+                Most players voted for &ldquo;{result.winningAnswerText}&rdquo; as the correct
+                answer. In this game, the most popular answer wins, regardless of truth.
+              </p>
+            </div>
+          </div>
+
+          <Button onClick={() => navigate('/game/podium')}>Continue to Next Round</Button>
         </div>
 
-        <Card>
-          <ul className={styles.playerList}>
-            {result.playerAnswers.map((pa) => (
-              <li key={pa.playerId} className={styles.playerRow}>
-                <div className={styles.playerInfo}>
-                  <span className={styles.nickname}>{pa.nickname}</span>
-                  <span className={[styles.answer, pa.isCorrect ? styles.answerCorrect : styles.answerWrong].join(' ')}>
-                    {getAnswerLabel(pa.selectedOptionId)}
-                  </span>
-                </div>
-                <span className={styles.points}>
-                  {pa.isCorrect ? `+${pa.pointsEarned}` : '0'}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </Card>
+        {/* ── Right: sidebar ── */}
+        <div className={layout.right}>
+          <Card padded={false}>
+            <div className={styles.panel}>
+              <UpdatedRankings entries={result.scoreboard} />
+            </div>
+          </Card>
 
-        <div className={styles.standingsLabel}>Aktualna klasyfikacja</div>
-        <Card>
-          <ul className={styles.standingsList}>
-            {result.scoreboard.map((s) => (
-              <li key={s.playerId} className={styles.standingRow}>
-                <span className={styles.rank}>#{s.rank}</span>
-                <span className={styles.standingNickname}>{s.nickname}</span>
-                <span className={styles.totalScore}>{s.totalScore} pkt</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
+          <Card padded={false}>
+            <div className={styles.panel}>
+              <VoteDistribution votes={result.voteDistribution} />
+            </div>
+          </Card>
 
-        <Button onClick={() => navigate('/game/podium')}>Następna runda</Button>
+          <Card padded={false}>
+            <div className={styles.panel}>
+              <p className={styles.panelLabel}>Progress to Win</p>
+              <div className={styles.progressRow}>
+                <span className={styles.progressLeader}>{leader.nickname} (leading)</span>
+                <span className={styles.progressValue}>{leader.totalScore}/{WIN_SCORE}</span>
+              </div>
+              <div className={styles.progressTrack}>
+                <div className={styles.progressFill} style={{ width: `${leadPct}%` }} />
+              </div>
+            </div>
+          </Card>
+        </div>
+
       </div>
-    </PageLayout>
+    </div>
   );
 }

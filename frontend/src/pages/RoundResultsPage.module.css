@@ -1,114 +1,102 @@
-.page {
+.pageHeader {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-2);
 }
 
-.header {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.roundLabel {
-  color: var(--text-secondary);
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.questionText {
-  font-size: 1.2rem;
-  font-weight: 600;
-  line-height: 1.4;
-}
-
-.correctLabel {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-}
-
-.correctAnswer {
-  color: #22c55e;
-  font-weight: 600;
-}
-
-.playerList,
-.standingsList {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.playerRow {
-  display: flex;
+.roundBadge {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
-  background: var(--bg-elevated);
-  border-radius: var(--radius-sm);
-}
-
-.playerInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.nickname {
-  font-weight: 600;
-  font-size: 0.95rem;
-}
-
-.answer {
-  font-size: 0.8rem;
-}
-
-.answerCorrect {
-  color: #22c55e;
-}
-
-.answerWrong {
-  color: var(--text-muted);
-}
-
-.points {
-  font-weight: 700;
+  align-self: flex-start;
+  padding: 3px 10px;
+  border-radius: 99px;
+  background: var(--accent-subtle);
+  border: 1px solid var(--accent);
   color: var(--accent);
-  font-size: 1rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.standingsLabel {
+.title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+/* ── Why section ── */
+
+.whySection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.whyTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.whyBox {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4);
+  background: var(--bg-elevated);
+}
+
+.whyText {
+  font-size: 0.875rem;
   color: var(--text-secondary);
-  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+/* ── Sidebar panels ── */
+
+.panel {
+  padding: var(--space-4);
+}
+
+.panelLabel {
+  font-size: 0.7rem;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 1px;
-}
-
-.standingRow {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  background: var(--bg-elevated);
-  border-radius: var(--radius-sm);
-}
-
-.rank {
   color: var(--text-muted);
-  font-size: 0.85rem;
-  font-weight: 700;
-  width: 28px;
-  flex-shrink: 0;
+  margin-bottom: var(--space-3);
 }
 
-.standingNickname {
-  flex: 1;
-  font-weight: 500;
+/* ── Progress to win ── */
+
+.progressRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-2);
 }
 
-.totalScore {
+.progressLeader {
+  font-size: 0.8rem;
   color: var(--text-secondary);
-  font-size: 0.9rem;
+}
+
+.progressValue {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.progressTrack {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.4s ease;
 }

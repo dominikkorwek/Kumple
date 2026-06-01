@@ -1,5 +1,7 @@
 import type { Room, Question, RoundResult, GameSummary, ScoreEntry } from '../types/game';
 
+export const WIN_SCORE = 100;
+
 export const mockRoom: Room = {
   code: 'PARTY7',
   inviteLink: 'http://localhost:5173/join/PARTY7',
@@ -49,17 +51,22 @@ export const mockRoundResult: RoundResult = {
   totalRounds: 12,
   question: mockQuestion,
   correctOptionId: 'a',
+  winningAnswerText: 'Coffee every morning',
   playerAnswers: [
-    { playerId: 'p1', nickname: 'Marek', selectedOptionId: 'a', isCorrect: true, pointsEarned: 920 },
-    { playerId: 'p2', nickname: 'Ania', selectedOptionId: 'a', isCorrect: true, pointsEarned: 750 },
-    { playerId: 'p3', nickname: 'Tomek', selectedOptionId: 'c', isCorrect: false, pointsEarned: 0 },
+    { playerId: 'p1', nickname: 'Marek', selectedOptionId: 'a', isCorrect: true, pointsEarned: 10 },
+    { playerId: 'p2', nickname: 'Ania', selectedOptionId: 'a', isCorrect: true, pointsEarned: 10 },
+    { playerId: 'p3', nickname: 'Tomek', selectedOptionId: 'a', isCorrect: true, pointsEarned: 10 },
     { playerId: 'p4', nickname: 'Kasia', selectedOptionId: null, isCorrect: false, pointsEarned: 0 },
   ],
   scoreboard: [
-    { playerId: 'p1', nickname: 'Marek', totalScore: 950, rank: 1 },
-    { playerId: 'p2', nickname: 'Ania', totalScore: 775, rank: 2 },
-    { playerId: 'p3', nickname: 'Tomek', totalScore: 20, rank: 3 },
-    { playerId: 'p4', nickname: 'Kasia', totalScore: 10, rank: 4 },
+    { playerId: 'p1', nickname: 'Marek', totalScore: 40, rank: 1, rankChange: 0 },
+    { playerId: 'p2', nickname: 'Ania', totalScore: 35, rank: 2, rankChange: 1 },
+    { playerId: 'p3', nickname: 'Tomek', totalScore: 30, rank: 3, rankChange: 1 },
+    { playerId: 'p4', nickname: 'Kasia', totalScore: 10, rank: 4, rankChange: 0 },
+  ],
+  voteDistribution: [
+    { optionId: 'a', optionText: 'Coffee every morning', votes: 3 },
+    { optionId: 'b', optionText: 'Tea occasionally', votes: 1 },
   ],
 };
 

@@ -37,6 +37,13 @@ export interface ScoreEntry {
   nickname: string;
   totalScore: number;
   rank: number;
+  rankChange?: number; // positive = moved up N positions
+}
+
+export interface VoteCount {
+  optionId: string;
+  optionText: string;
+  votes: number;
 }
 
 export interface RoundResult {
@@ -44,8 +51,10 @@ export interface RoundResult {
   totalRounds: number;
   question: Question;
   correctOptionId: string;
+  winningAnswerText: string;
   playerAnswers: PlayerRoundAnswer[];
   scoreboard: ScoreEntry[];
+  voteDistribution: VoteCount[];
 }
 
 export interface PlayerRoundAnswer {
