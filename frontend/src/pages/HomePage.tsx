@@ -4,6 +4,7 @@ import PageLayout from '../components/layout/PageLayout';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
+import GamePreview from '../components/home/GamePreview';
 import styles from './HomePage.module.css';
 
 function IconGame() {
@@ -32,6 +33,7 @@ function IconGroup() {
 export default function HomePage() {
   const navigate = useNavigate();
   const [joinCode, setJoinCode] = useState('');
+  const [showPreview, setShowPreview] = useState(false);
 
   function handleJoin() {
     const code = joinCode.trim();
@@ -82,16 +84,17 @@ export default function HomePage() {
         </div>
 
         <div className={styles.features}>
-          <Card padded={false}>
-            <div className={styles.featureCard}>
-              <span className={styles.featureIcon}><IconGame /></span>
-              <h3 className={styles.featureTitle}>Game Preview</h3>
-              <p className={styles.featureText}>
-                Players answer social questions about each other. Most voted
-                answer wins points. Track progress on live leaderboard.
-              </p>
-            </div>
-          </Card>
+          <button className={`${styles.featureCardBtn} ${showPreview ? styles.featureCardBtnActive : ''}`} onClick={() => setShowPreview(v => !v)}>
+            <span className={styles.featureIcon}><IconGame /></span>
+            <h3 className={styles.featureTitle}>Game Preview</h3>
+            <p className={styles.featureText}>
+              Players answer social questions about each other. Most voted
+              answer wins points. Track progress on live leaderboard.
+            </p>
+            <span className={styles.previewHint}>
+              {showPreview ? 'Hide demo ↑' : 'See live demo ↓'}
+            </span>
+          </button>
 
           <Card padded={false}>
             <div className={styles.featureCard}>
@@ -104,6 +107,8 @@ export default function HomePage() {
             </div>
           </Card>
         </div>
+
+        {showPreview && <GamePreview />}
 
       </div>
     </PageLayout>
