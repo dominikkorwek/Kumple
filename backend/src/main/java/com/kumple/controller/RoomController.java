@@ -7,6 +7,7 @@ import com.kumple.service.RoomService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -24,8 +25,8 @@ public class RoomController {
     }
 
     @PostMapping
-    public ResponseEntity<RoomResponse> createRoom(@RequestBody CreateRoomRequest request) {
-        Room room = roomService.createRoom(request.hostNickname(), request.maxPlayers());
+    public ResponseEntity<RoomResponse> createRoom(@RequestBody CreateRoomRequest request, Authentication authentication) {
+        Room room = roomService.createRoom(request.hostNickname(), request.maxPlayers(), authentication.getName());
         return ResponseEntity.status(HttpStatus.CREATED).body(RoomResponse.from(room));
     }
 

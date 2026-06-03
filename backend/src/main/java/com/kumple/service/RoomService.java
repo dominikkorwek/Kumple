@@ -3,6 +3,7 @@ package com.kumple.service;
 import com.kumple.model.Player;
 import com.kumple.model.Room;
 import com.kumple.repository.RoomRepository;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,15 +32,15 @@ public class RoomService {
     }
 
     @Transactional
-    public Room createRoom(String hostNickname, Integer maxPlayers) {
-        roomRepository.findByHostNickname(hostNickname).ifPresent(oldRoom -> {
+    public Room createRoom(String hostNickname, Integer maxPlayers, String hostAuthSubject) {
+        roomRepository.findByHostAuthSubject(hostAuthSubject).ifPresent(oldRoom -> {
             sessionMap.values().removeIf(s -> s.roomCode().equalsIgnoreCase(oldRoom.getCode()));
             roomRepository.delete(oldRoom);
         });
 
         String code = generateCode();
         int max = maxPlayers != null ? maxPlayers : DEFAULT_MAX_PLAYERS;
-        Room room = new Room(code, max);
+        Room room = new Room(code, max, hostAuthSubject);
         room.addPlayer(hostNickname, true);
         return roomRepository.save(room);
     }
@@ -98,6 +99,16 @@ public class RoomService {
 
     public Optional<SessionInfo> getSession(String sessionId) {
         return Optional.ofNullable(sessionMap.get(sessionId));
+    }
+
+    @Transactional(readOnly = true)
+    public void assertHost(String code, String hostAuthSubject) {
+        Room room = roomRepository.findByCodeIgnoreCase(code)
+                .orElseThrow(() -> new IllegalArgumentException("Pokój o kodzie " + code + " nie istnieje"));
+
+        if (!hostAuthSubject.equals(room.getHostAuthSubject())) {
+            throw new AccessDeniedException("Tylko host tego pokoju może wykonać tę akcję");
+        }
     }
 
     private String generateCode() {

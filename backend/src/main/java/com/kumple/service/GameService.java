@@ -22,23 +22,27 @@ public class GameService {
     private final QuestionService questionService;
     private final ScoreService scoreService;
     private final RoundService roundService;
+    private final RoomService roomService;
 
     public GameService(
             GameSessionRepository gameSessionRepository,
             RoomRepository roomRepository,
             QuestionService questionService,
             ScoreService scoreService,
-            RoundService roundService
+            RoundService roundService,
+            RoomService roomService
     ) {
         this.gameSessionRepository = gameSessionRepository;
         this.roomRepository = roomRepository;
         this.questionService = questionService;
         this.scoreService = scoreService;
         this.roundService = roundService;
+        this.roomService = roomService;
     }
 
     @Transactional
-    public GameStateResponse updateSettings(String roomCode, GameSettingsRequest request) {
+    public GameStateResponse updateSettings(String roomCode, GameSettingsRequest request, String hostAuthSubject) {
+        roomService.assertHost(roomCode, hostAuthSubject);
         GameSession session = getOrCreateLobbySession(roomCode);
         if (session.getStatus() != GameStatus.LOBBY) {
             throw new IllegalStateException("Ustawienia można zmieniać tylko przed startem gry");
@@ -60,7 +64,8 @@ public class GameService {
     }
 
     @Transactional
-    public GameStateResponse startGame(String roomCode) {
+    public GameStateResponse startGame(String roomCode, String hostAuthSubject) {
+        roomService.assertHost(roomCode, hostAuthSubject);
         GameSession session = getOrCreateLobbySession(roomCode);
         if (session.getStatus() == GameStatus.FINISHED) {
             throw new IllegalStateException("Ta gra jest już zakończona");
@@ -75,7 +80,8 @@ public class GameService {
     }
 
     @Transactional
-    public GameStateResponse nextRound(String roomCode) {
+    public GameStateResponse nextRound(String roomCode, String hostAuthSubject) {
+        roomService.assertHost(roomCode, hostAuthSubject);
         GameSession session = getSession(roomCode);
         if (session.getStatus() == GameStatus.FINISHED) {
             return toState(session);

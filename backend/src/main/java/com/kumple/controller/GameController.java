@@ -6,6 +6,7 @@ import com.kumple.dto.QuestionCategoryResponse;
 import com.kumple.service.GameService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -38,9 +39,13 @@ public class GameController {
     }
 
     @PostMapping("/rooms/{code}/settings")
-    public ResponseEntity<?> updateSettings(@PathVariable String code, @RequestBody GameSettingsRequest request) {
+    public ResponseEntity<?> updateSettings(
+            @PathVariable String code,
+            @RequestBody GameSettingsRequest request,
+            Authentication authentication
+    ) {
         try {
-            GameStateResponse state = gameService.updateSettings(code, request);
+            GameStateResponse state = gameService.updateSettings(code, request, authentication.getName());
             broadcast(code, state);
             return ResponseEntity.ok(state);
         } catch (IllegalArgumentException e) {
@@ -51,9 +56,9 @@ public class GameController {
     }
 
     @PostMapping("/rooms/{code}/start")
-    public ResponseEntity<?> startGame(@PathVariable String code) {
+    public ResponseEntity<?> startGame(@PathVariable String code, Authentication authentication) {
         try {
-            GameStateResponse state = gameService.startGame(code);
+            GameStateResponse state = gameService.startGame(code, authentication.getName());
             broadcast(code, state);
             return ResponseEntity.ok(state);
         } catch (IllegalArgumentException e) {
@@ -64,9 +69,9 @@ public class GameController {
     }
 
     @PostMapping("/rooms/{code}/rounds/next")
-    public ResponseEntity<?> nextRound(@PathVariable String code) {
+    public ResponseEntity<?> nextRound(@PathVariable String code, Authentication authentication) {
         try {
-            GameStateResponse state = gameService.nextRound(code);
+            GameStateResponse state = gameService.nextRound(code, authentication.getName());
             broadcast(code, state);
             return ResponseEntity.ok(state);
         } catch (IllegalArgumentException e) {
