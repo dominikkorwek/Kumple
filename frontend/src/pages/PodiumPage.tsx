@@ -54,9 +54,6 @@ export default function PodiumPage() {
                 return <PodiumPlayer key={player.playerId} player={player} place={place} />;
               })}
             </div>
-            <p className={styles.placeholder}>
-              Placeholder: Celebration animation / particle effects
-            </p>
           </div>
 
           <Button onClick={() => navigate('/game/summary')}>View Final Summary</Button>

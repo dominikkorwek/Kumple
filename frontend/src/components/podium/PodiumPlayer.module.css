@@ -8,10 +8,10 @@
 }
 
 .winnerSlot {
-  /* winner is rendered taller via block height */
+  
 }
 
-/* ── Info area (above block) ── */
+/* info area (above block) */
 
 .info {
   display: flex;
@@ -82,7 +82,7 @@
   color: var(--accent);
 }
 
-/* ── Podium block ── */
+/* podium block */
 
 .block {
   width: 100%;
@@ -115,7 +115,6 @@
 .block2 { height: 70px; }
 .block3 { height: 50px; }
 
-/* ── Responsive ── */
 
 @media (max-width: 480px) {
   .block1 { height: 64px; }
