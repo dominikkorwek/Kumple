@@ -49,6 +49,7 @@ export default function PodiumPlayer({ player, place }: PodiumPlayerProps) {
         </span>
       </div>
 
+      {/* podium block */}
       <div
         className={[
           styles.block,

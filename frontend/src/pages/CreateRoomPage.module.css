@@ -69,18 +69,50 @@
   background: var(--bg-elevated);
 }
 
-/* removes bottom border on the last 1-2 rows in a 2-col grid */
 .checkboxRow:last-child,
 .checkboxRow:nth-last-child(2):nth-child(odd) {
   border-bottom: none;
 }
 
 .checkbox {
+  appearance: none;
+  -webkit-appearance: none;
   width: 15px;
   height: 15px;
-  accent-color: var(--accent);
+  border: 1.5px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-elevated);
   cursor: pointer;
   flex-shrink: 0;
+  position: relative;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.checkbox:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.checkbox:checked::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 0px;
+  width: 5px;
+  height: 9px;
+  border: 2px solid #fff;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
+}
+
+.checkbox:hover:not(:checked) {
+  border-color: var(--text-muted);
+}
+
+.checkbox:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 .inputs {

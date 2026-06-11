@@ -1,4 +1,3 @@
-/* animal svgs use currentColor, so they render white against the colored background */
 .display {
   border-radius: 50%;
   display: flex;
