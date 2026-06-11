@@ -19,6 +19,9 @@ public class Room {
     @Column(nullable = false)
     private int maxPlayers;
 
+    @Column(length = 255)
+    private String hostAuthSubject;
+
     @Column(nullable = false)
     private Instant createdAt;
 
@@ -26,19 +29,26 @@ public class Room {
     @OrderBy("joinedAt ASC")
     private List<Player> players = new ArrayList<>();
 
+    @OneToOne(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true)
+    private GameSession gameSession;
+
     protected Room() {}
 
-    public Room(String code, int maxPlayers) {
+    public Room(String code, int maxPlayers, String hostAuthSubject) {
         this.code = code;
         this.maxPlayers = maxPlayers;
+        this.hostAuthSubject = hostAuthSubject;
         this.createdAt = Instant.now();
     }
 
     public Long getId() { return id; }
     public String getCode() { return code; }
     public Instant getCreatedAt() { return createdAt; }
+    public String getHostAuthSubject() { return hostAuthSubject; }
     public List<Player> getPlayers() { return players; }
     public int getMaxPlayers() { return maxPlayers; }
+    public GameSession getGameSession() { return gameSession; }
+    public void setGameSession(GameSession gameSession) { this.gameSession = gameSession; }
 
     public boolean isFull() {
         return players.size() >= maxPlayers;
