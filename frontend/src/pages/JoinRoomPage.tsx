@@ -1,11 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { mockRoom } from '../mocks/gameMock';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Card from '../components/ui/Card';
 import AvatarPicker, { AvatarDisplay, AVATAR_COLORS } from '../components/join/AvatarPicker';
 import type { AvatarConfig } from '../components/join/AvatarPicker';
+import { getRoomByCode, joinRoom, createRoom, updateSettings } from '../services/api';
+import { usePlayer } from '../context/PlayerContext';
+import { PENDING_SETTINGS_KEY } from './CreateRoomPage';
+import type { PendingRoomSettings } from './CreateRoomPage';
+import type { RoomResponse } from '../types/api';
+import Toast from '../components/ui/Toast';
 import layout from '../styles/lobbyLayout.module.css';
 import styles from './JoinRoomPage.module.css';
 
@@ -34,32 +39,97 @@ const DEFAULT_AVATAR: AvatarConfig = {
 export default function JoinRoomPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
+  const { setSession } = usePlayer();
 
-  const code = params.get('code') ?? mockRoom.code;
+  const code = (params.get('code') ?? '').toUpperCase();
   const isHost = params.get('host') === 'true';
-  const room = mockRoom;
 
+  const [pendingSettings, setPendingSettings] = useState<PendingRoomSettings | null>(null);
+  const [room, setRoom] = useState<RoomResponse | null>(null);
+  const [roomError, setRoomError] = useState('');
   const [nickname, setNickname] = useState('');
-  const [nickError, setNickError] = useState('');
   const [avatar, setAvatar] = useState<AvatarConfig>(DEFAULT_AVATAR);
+  const [loading, setLoading] = useState(false);
+  const [apiError, setApiError] = useState('');
+  const [toast, setToast] = useState('');
 
-  function handleJoin() {
+  useEffect(() => {
+    if (isHost) {
+      const raw = sessionStorage.getItem(PENDING_SETTINGS_KEY);
+      if (raw) {
+        try { setPendingSettings(JSON.parse(raw) as PendingRoomSettings); } catch { /* ignore */ }
+      }
+      return;
+    }
+    if (!code) {
+      setRoomError('No room code provided');
+      return;
+    }
+    getRoomByCode(code)
+      .then(setRoom)
+      .catch(() => setRoomError('Room not found'));
+  }, [code, isHost]);
+
+  async function handleJoin() {
     const trimmed = nickname.trim();
-    if (!trimmed) {
-      setNickError('Nickname is required');
-      return;
+    if (!trimmed) { setToast('Wpisz swój nickname, aby kontynuować'); return; }
+    if (trimmed.length < 2) { setToast('Nickname musi mieć co najmniej 2 znaki'); return; }
+    if (trimmed.length > 30) { setToast('Nickname może mieć maksymalnie 30 znaków'); return; }
+    setLoading(true);
+    setApiError('');
+
+    try {
+      if (isHost) {
+        const settings = pendingSettings ?? { maxPlayers: 8, pointLimit: 100, timePerAnswer: 30, excludedCategoryIds: [] };
+        const { player, room: newRoom } = await createRoom(trimmed, settings.maxPlayers, avatar.animalId, avatar.color);
+        await updateSettings(newRoom.code, {
+          pointLimit: settings.pointLimit,
+          timePerAnswer: settings.timePerAnswer,
+          excludedCategoryIds: settings.excludedCategoryIds,
+        });
+        sessionStorage.removeItem(PENDING_SETTINGS_KEY);
+        setSession({
+          playerId: player.id,
+          nickname: player.nickname,
+          roomCode: newRoom.code,
+          isHost: true,
+          avatar: {
+            animalId: player.avatarAnimal ?? avatar.animalId,
+            color: player.avatarColor ?? avatar.color,
+          },
+        });
+        navigate('/lobby');
+        return;
+      }
+
+      const { player } = await joinRoom(code, trimmed, avatar.animalId, avatar.color);
+      setSession({
+        playerId: player.id,
+        nickname: player.nickname,
+        roomCode: code,
+        isHost: false,
+        avatar: {
+          animalId: player.avatarAnimal ?? avatar.animalId,
+          color: player.avatarColor ?? avatar.color,
+        },
+      });
+      navigate('/lobby');
+    } catch (e) {
+      setApiError(e instanceof Error ? e.message : 'Failed to join room');
+    } finally {
+      setLoading(false);
     }
-    if (trimmed.length < 2) {
-      setNickError('Nickname must be at least 2 characters');
-      return;
-    }
-    navigate('/lobby');
   }
 
-  const isFull = room.players.length >= room.settings.maxPlayers;
-  const emptySlots = room.settings.maxPlayers - room.players.length - 1;
+  const isFull = room ? room.currentPlayers >= room.maxPlayers : false;
+  const occupiedSlots = room?.players ?? [];
+  const previewMaxPlayers = isHost ? (pendingSettings?.maxPlayers ?? 8) : (room?.maxPlayers ?? 0);
+  const emptySlots = isHost
+    ? Math.max(0, previewMaxPlayers - 1)
+    : (room ? Math.max(0, room.maxPlayers - room.currentPlayers - 1) : 0);
 
   return (
+    <>
     <div className={layout.page}>
       <div className={layout.columns}>
 
@@ -77,16 +147,18 @@ export default function JoinRoomPage() {
             <h1 className={styles.title}>{isHost ? 'Set Up Your Profile' : 'Join Game Room'}</h1>
             <p className={styles.subtitle}>
               {isHost
-                ? 'Pick an avatar and nickname before entering your lobby'
+                ? 'Enter your nickname and pick an avatar — your room will be created when you continue'
                 : 'Enter your nickname and pick an avatar to join the session'}
             </p>
           </div>
 
+          {roomError && <p className={styles.errorText}>{roomError}</p>}
+
           <Card padded={false}>
             <div className={styles.roomConfirm}>
               <span className={styles.roomLabel}>Room code</span>
-              <span className={styles.roomCode}>{code}</span>
-              {isFull && <span className={styles.fullBadge}>Room full</span>}
+              <span className={styles.roomCode}>{code || '—'}</span>
+              {isFull && !isHost && <span className={styles.fullBadge}>Room full</span>}
             </div>
           </Card>
 
@@ -96,19 +168,19 @@ export default function JoinRoomPage() {
             label="Your nickname"
             placeholder="e.g. Marek"
             value={nickname}
-            onChange={(e) => {
-              setNickname(e.target.value);
-              if (nickError) setNickError('');
-            }}
+            onChange={(e) => setNickname(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
-            error={!!nickError}
-            helperText={nickError || undefined}
-            maxLength={20}
+            maxLength={30}
             autoFocus
           />
 
-          <Button onClick={handleJoin} disabled={!nickname.trim() || (!isHost && isFull)}>
-            {isHost ? 'Enter Lobby' : 'Join Game'}
+          {apiError && <p className={styles.errorText}>{apiError}</p>}
+
+          <Button
+            onClick={handleJoin}
+            disabled={loading || (!isHost && isFull)}
+          >
+            {loading ? (isHost ? 'Creating room…' : 'Joining…') : isHost ? 'Create Room & Enter Lobby' : 'Join Game'}
           </Button>
 
         </div>
@@ -122,36 +194,34 @@ export default function JoinRoomPage() {
               <div className={styles.playerCount}>
                 <PersonIcon size={16} />
                 <span>
-                  {room.players.length + 1} / {room.settings.maxPlayers} players joined
+                  {isHost
+                    ? `1 / ${previewMaxPlayers} players`
+                    : room ? `${room.currentPlayers + 1} / ${room.maxPlayers} players` : '— / —'}
                 </span>
               </div>
 
               <div className={styles.playerList}>
 
-                {room.players.map((p) => (
+                {occupiedSlots.map((p) => (
                   <div key={p.id} className={styles.playerRow}>
-                    <div className={styles.playerAvatar}>
-                      <PersonIcon size={14} />
-                    </div>
+                    <AvatarDisplay
+                      animalId={p.avatarAnimal ?? 'cat'}
+                      color={p.avatarColor ?? '#f97316'}
+                      size={28}
+                    />
                     <span className={styles.playerName}>{p.nickname}</span>
                     {p.isHost && <span className={styles.hostTag}>Host</span>}
                   </div>
                 ))}
 
                 <div className={`${styles.playerRow} ${styles.youRow}`}>
-                  <AvatarDisplay
-                    animalId={avatar.animalId}
-                    color={avatar.color}
-                    size={28}
-                  />
-                  <span className={styles.playerName}>
-                    {nickname.trim() || 'You'}
-                  </span>
+                  <AvatarDisplay animalId={avatar.animalId} color={avatar.color} size={28} />
+                  <span className={styles.playerName}>{nickname.trim() || 'You'}</span>
                   <span className={styles.youTag}>{isHost ? 'Host' : 'Joining…'}</span>
                 </div>
 
                 {emptySlots > 0 &&
-                  Array.from({ length: emptySlots }).map((_, i) => (
+                  Array.from({ length: Math.min(emptySlots, 4) }).map((_, i) => (
                     <div key={`empty-${i}`} className={`${styles.playerRow} ${styles.emptyRow}`}>
                       <div className={`${styles.playerAvatar} ${styles.emptyAvatar}`}>
                         <PersonIcon size={14} />
@@ -164,28 +234,37 @@ export default function JoinRoomPage() {
             </div>
           </Card>
 
-          <Card padded={false}>
-            <div className={styles.panel}>
-              <p className={styles.panelLabel}>Game Settings</p>
-              <div className={styles.settingsList}>
-                <div className={styles.settingRow}>
-                  <span className={styles.settingKey}>Time per round</span>
-                  <span className={styles.settingVal}>{room.settings.timeLimitSeconds}s</span>
-                </div>
-                <div className={styles.settingRow}>
-                  <span className={styles.settingKey}>Max players</span>
-                  <span className={styles.settingVal}>{room.settings.maxPlayers}</span>
-                </div>
-                <div className={styles.settingRow}>
-                  <span className={styles.settingKey}>Total rounds</span>
-                  <span className={styles.settingVal}>{room.settings.totalRounds}</span>
+          {(isHost ? pendingSettings : room) && (
+            <Card padded={false}>
+              <div className={styles.panel}>
+                <p className={styles.panelLabel}>Game Settings</p>
+                <div className={styles.settingsList}>
+                  <div className={styles.settingRow}>
+                    <span className={styles.settingKey}>Points to win</span>
+                    <span className={styles.settingVal}>
+                      {isHost ? pendingSettings!.pointLimit : '—'}
+                    </span>
+                  </div>
+                  <div className={styles.settingRow}>
+                    <span className={styles.settingKey}>Time per answer</span>
+                    <span className={styles.settingVal}>
+                      {isHost ? `${pendingSettings!.timePerAnswer}s` : '—'}
+                    </span>
+                  </div>
+                  <div className={styles.settingRow}>
+                    <span className={styles.settingKey}>Max players</span>
+                    <span className={styles.settingVal}>{previewMaxPlayers}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          </Card>
+            </Card>
+          )}
 
         </div>
       </div>
     </div>
+
+    {toast && <Toast message={toast} onDismiss={() => setToast('')} />}
+    </>
   );
 }

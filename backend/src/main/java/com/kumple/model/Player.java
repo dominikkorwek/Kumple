@@ -21,6 +21,12 @@ public class Player {
     @Column(nullable = false)
     private boolean isHost;
 
+    @Column(nullable = false, length = 20)
+    private String avatarAnimal;
+
+    @Column(nullable = false, length = 30)
+    private String avatarColor;
+
     @Column(nullable = false)
     private Instant joinedAt;
 
@@ -30,10 +36,12 @@ public class Player {
 
     protected Player() {}
 
-    public Player(String nickname, boolean isHost, Room room) {
+    public Player(String nickname, boolean isHost, String avatarAnimal, String avatarColor, Room room) {
         this.playerId = UUID.randomUUID().toString().substring(0, 8);
         this.nickname = nickname;
         this.isHost = isHost;
+        this.avatarAnimal = avatarAnimal != null ? avatarAnimal : "cat";
+        this.avatarColor = avatarColor != null ? avatarColor : "#f97316";
         this.joinedAt = Instant.now();
         this.room = room;
     }
@@ -43,6 +51,8 @@ public class Player {
     public String getNickname() { return nickname; }
     public boolean isHost() { return isHost; }
     public void setHost(boolean host) { isHost = host; }
+    public String getAvatarAnimal() { return avatarAnimal; }
+    public String getAvatarColor() { return avatarColor; }
     public Instant getJoinedAt() { return joinedAt; }
     public Room getRoom() { return room; }
 }

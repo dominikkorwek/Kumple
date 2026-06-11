@@ -1,9 +1,14 @@
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { mockGameSummary, WIN_SCORE } from '../mocks/gameMock';
 import PodiumPlayer from '../components/podium/PodiumPlayer';
 import FinalRankingList from '../components/podium/FinalRankingList';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
+import { getGameState } from '../services/api';
+import { connectRoom, disconnect } from '../services/stomp';
+import { usePlayer } from '../context/PlayerContext';
+import type { GameStateResponse } from '../types/api';
+import type { ScoreEntry } from '../types/game';
 import layout from '../styles/lobbyLayout.module.css';
 import styles from './PodiumPage.module.css';
 
@@ -26,9 +31,52 @@ function CrownIcon() {
 // 2nd left, 1st center, 3rd right
 const PODIUM_ORDER: Array<1 | 2 | 3> = [2, 1, 3];
 
+function toScoreEntries(gs: GameStateResponse): ScoreEntry[] {
+  return gs.ranking.map((s, idx) => ({
+    playerId: s.player.id,
+    nickname: s.player.nickname,
+    totalScore: s.points,
+    rank: idx + 1,
+  }));
+}
+
 export default function PodiumPage() {
   const navigate = useNavigate();
-  const { finalRanking } = mockGameSummary;
+  const { session } = usePlayer();
+
+  const roomCode = session?.roomCode ?? '';
+  const playerId = session?.playerId ?? '';
+
+  const [finalRanking, setFinalRanking] = useState<ScoreEntry[]>([]);
+  const [winCondition, setWinCondition] = useState(100);
+
+  const handleMessage = useCallback((msg: GameStateResponse | { event?: string }) => {
+    if (!('status' in msg)) return;
+    const gs = msg as GameStateResponse;
+    if (gs.status === 'FINISHED' || gs.status === 'IN_PROGRESS') {
+      setFinalRanking(toScoreEntries(gs));
+      setWinCondition(gs.pointLimit);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!roomCode) { navigate('/'); return; }
+    let cancelled = false;
+    getGameState(roomCode)
+      .then((gs) => {
+        if (!cancelled) {
+          setFinalRanking(toScoreEntries(gs));
+          setWinCondition(gs.pointLimit);
+        }
+      })
+      .catch(() => { if (!cancelled) navigate('/'); });
+    connectRoom(roomCode, playerId, (msg) => handleMessage(msg as GameStateResponse), undefined);
+    return () => {
+      cancelled = true;
+      disconnect();
+    };
+  }, [roomCode, playerId, handleMessage, navigate]);
+
   const top3 = finalRanking.slice(0, 3);
   const winner = finalRanking[0];
 
@@ -62,27 +110,29 @@ export default function PodiumPage() {
         <div className={layout.right}>
           <Card padded={false}>
             <div className={styles.panel}>
-              <FinalRankingList entries={finalRanking} winnerId={winner.playerId} />
+              <FinalRankingList entries={finalRanking} winnerId={winner?.playerId ?? ''} />
             </div>
           </Card>
 
-          <Card padded={false}>
-            <div className={styles.panel}>
-              <p className={styles.panelLabel}>Winner Highlight</p>
-              <div className={styles.winnerHighlight}>
-                <span className={styles.winnerIcon}>
-                  <CrownIcon />
-                </span>
-                <div className={styles.winnerInfo}>
-                  <p className={styles.winnerName}>{winner.nickname}</p>
-                  <p className={styles.winnerSub}>Reached {WIN_SCORE} points</p>
+          {winner && (
+            <Card padded={false}>
+              <div className={styles.panel}>
+                <p className={styles.panelLabel}>Winner Highlight</p>
+                <div className={styles.winnerHighlight}>
+                  <span className={styles.winnerIcon}>
+                    <CrownIcon />
+                  </span>
+                  <div className={styles.winnerInfo}>
+                    <p className={styles.winnerName}>{winner.nickname}</p>
+                    <p className={styles.winnerSub}>Reached {winCondition} points</p>
+                  </div>
                 </div>
+                <p className={styles.winnerDesc}>
+                  First player to exceed the {winCondition} point win condition. Congratulations!
+                </p>
               </div>
-              <p className={styles.winnerDesc}>
-                First player to exceed the {WIN_SCORE} point win condition. Congratulations!
-              </p>
-            </div>
-          </Card>
+            </Card>
+          )}
         </div>
 
       </div>

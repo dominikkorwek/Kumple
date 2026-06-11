@@ -205,3 +205,8 @@
   font-weight: 600;
   color: var(--text-secondary);
 }
+
+.errorText {
+  font-size: 0.8rem;
+  color: #e05454;
+}

@@ -242,3 +242,8 @@
   font-weight: 600;
   color: var(--accent);
 }
+
+.errorText {
+  font-size: 0.8rem;
+  color: #e05454;
+}

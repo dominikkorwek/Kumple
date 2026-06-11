@@ -9,8 +9,10 @@ interface GameSettingsSummaryProps {
   settings: GameSettings;
   selectedCategories: string[];
   onToggleCategory: (cat: string) => void;
-  onStartGame: () => void;
+  onStartGame?: () => void;
   onCancel: () => void;
+  isHost?: boolean;
+  starting?: boolean;
 }
 
 export default function GameSettingsSummary({
@@ -19,6 +21,8 @@ export default function GameSettingsSummary({
   onToggleCategory,
   onStartGame,
   onCancel,
+  isHost = true,
+  starting = false,
 }: GameSettingsSummaryProps) {
   return (
     <>
@@ -47,11 +51,11 @@ export default function GameSettingsSummary({
           <div className={styles.settingRows}>
             <div className={styles.settingRow}>
               <span className={styles.settingLabel}>Win condition</span>
-              <span className={styles.settingValue}>100 points</span>
+              <span className={styles.settingValue}>{settings.pointLimit} points</span>
             </div>
             <div className={styles.settingRow}>
               <span className={styles.settingLabel}>Answer time</span>
-              <span className={styles.settingValue}>{settings.timeLimitSeconds} seconds</span>
+              <span className={styles.settingValue}>{settings.timePerAnswer} seconds</span>
             </div>
             <div className={styles.settingRow}>
               <span className={styles.settingLabel}>Room capacity</span>
@@ -83,8 +87,14 @@ export default function GameSettingsSummary({
             <li>Cancel and close room</li>
           </ul>
           <div className={styles.actions}>
-            <Button onClick={onStartGame}>Start Game</Button>
-            <Button variant="ghost" onClick={onCancel}>Cancel</Button>
+            {isHost && (
+              <Button onClick={onStartGame} disabled={starting}>
+                {starting ? 'Starting…' : 'Start Game'}
+              </Button>
+            )}
+            <Button variant="ghost" onClick={onCancel}>
+              {isHost ? 'Cancel' : 'Leave'}
+            </Button>
           </div>
         </div>
       </Card>

@@ -54,8 +54,8 @@ public class Room {
         return players.size() >= maxPlayers;
     }
 
-    public Player addPlayer(String nickname, boolean isHost) {
-        Player player = new Player(nickname, isHost, this);
+    public Player addPlayer(String nickname, boolean isHost, String avatarAnimal, String avatarColor) {
+        Player player = new Player(nickname, isHost, avatarAnimal, avatarColor, this);
         players.add(player);
         return player;
     }

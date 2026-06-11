@@ -2,8 +2,6 @@
 
 Project: Party Wire Game - a web-based party game.
 
-At this stage, we are building a mocked frontend without backend integration.
-
 Stack:
 - Vite
 - React
@@ -13,34 +11,34 @@ Stack:
 - do not add new libraries without asking first
 
 Rules:
-- Do not modify the backend.
-- Do not make HTTP requests.
-- Do not implement WebSockets yet.
-- Keep all mock data locally in src/mocks.
+- Do not modify the backend unless explicitly requested.
 - Keep TypeScript types in src/types.
 - Keep page-level views in src/pages.
 - Keep reusable components in src/components.
+- Use src/services for REST API and WebSocket (STOMP) integration.
+- Use PlayerContext for the current player session (sessionStorage).
 - The UI should be dark, minimalistic, and use an orange accent color for primary actions.
-- The code should be simple, readable, and easy to connect to the backend later.
+- The code should be simple, readable, and aligned with backend DTOs.
 
 Main screens:
 - HomePage
 - CreateRoomPage
+- JoinRoomPage
 - LobbyPage
 - QuestionPage
 - RoundResultsPage
 - PodiumPage
 - GameSummaryPage
 
-Mocked flow:
-HomePage -> CreateRoomPage -> LobbyPage -> QuestionPage -> RoundResultsPage -> PodiumPage -> GameSummaryPage
+Flow:
+HomePage -> CreateRoomPage -> JoinRoomPage -> LobbyPage -> QuestionPage -> RoundResultsPage -> PodiumPage -> GameSummaryPage
 
 Frontend responsibility:
-- Display the game UI based on mocked data.
-- Simulate the main user flow.
+- Connect to the backend REST API for room creation, joining, settings, and game actions.
+- Subscribe to WebSocket updates for real-time lobby and game state.
+- Display the game UI based on API responses and live updates.
 - Use local component state only where needed.
-- Avoid adding complex state management.
-- Prepare the structure so that mock data can later be replaced with API data.
+- Avoid adding complex state management beyond PlayerContext.
 
 Project notes:
 - The host can create a game room.

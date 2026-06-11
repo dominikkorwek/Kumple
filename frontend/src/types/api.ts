@@ -1,0 +1,123 @@
+export type GameStatus = 'LOBBY' | 'IN_PROGRESS' | 'FINISHED';
+
+export type RoundStatus =
+  | 'WAITING_FOR_QUESTION'
+  | 'WAITING_FOR_ANSWERS'
+  | 'REVEALING'
+  | 'COMPLETED';
+
+export type RoundType =
+  | 'GUESS_PLAYER_ANSWER'
+  | 'REUSE_QUESTION'
+  | 'VOTE_PERSON'
+  | 'PLAYER_CREATES_QUESTION'
+  | 'BEST_ANSWER';
+
+export interface PlayerResponse {
+  id: string;
+  nickname: string;
+  isHost: boolean;
+  avatarAnimal: string;
+  avatarColor: string;
+}
+
+export interface RoomResponse {
+  code: string;
+  maxPlayers: number;
+  currentPlayers: number;
+  players: PlayerResponse[];
+}
+
+export interface QuestionCategoryResponse {
+  id: number;
+  name: string;
+}
+
+export interface QuestionResponse {
+  id: number;
+  content: string;
+  roundType: RoundType;
+  category: string | null;
+}
+
+export interface AnswerResponse {
+  id: number;
+  content: string;
+  author: PlayerResponse | null;
+  targetPlayer: PlayerResponse | null;
+  correct: boolean;
+  voteCount: number;
+}
+
+export interface ScoreResponse {
+  player: PlayerResponse;
+  points: number;
+}
+
+export interface RoundResponse {
+  id: number;
+  roundNumber: number;
+  roundType: RoundType;
+  status: RoundStatus;
+  question: QuestionResponse | null;
+  selectedPlayer: PlayerResponse | null;
+  winningAnswer: AnswerResponse | null;
+  answers: AnswerResponse[];
+}
+
+export interface GameStateResponse {
+  id: number;
+  status: GameStatus;
+  room: RoomResponse;
+  pointLimit: number;
+  timePerAnswer: number;
+  currentRound: RoundResponse | null;
+  ranking: ScoreResponse[];
+}
+
+export interface CreateRoomRequest {
+  hostNickname: string;
+  maxPlayers: number;
+  avatarAnimal: string;
+  avatarColor: string;
+}
+
+export interface JoinRoomRequest {
+  nickname: string;
+  avatarAnimal: string;
+  avatarColor: string;
+}
+
+export interface LeaveRoomRequest {
+  playerId: string;
+}
+
+export interface GameSettingsRequest {
+  pointLimit: number;
+  timePerAnswer: number;
+  excludedCategoryIds: number[];
+}
+
+export interface AnswerOptionRequest {
+  content: string;
+  correct: boolean;
+  targetPlayerId: string | null;
+}
+
+export interface SubmitQuestionRequest {
+  questionContent: string;
+  answers: AnswerOptionRequest[];
+  answersArePlayers: boolean;
+}
+
+export interface SubmitAnswerRequest {
+  playerId: string;
+  answerId: number | null;
+  freeText: string | null;
+  selectedAnswerId: number | null;
+}
+
+export interface JoinRoomResponse {
+  player: PlayerResponse;
+  room: RoomResponse;
+}

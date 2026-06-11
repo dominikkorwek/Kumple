@@ -1,7 +1,11 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { mockGameSummary, WIN_SCORE } from '../mocks/gameMock';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
+import { getGameState } from '../services/api';
+import { usePlayer } from '../context/PlayerContext';
+import type { ScoreEntry } from '../types/game';
+import type { GameStateResponse } from '../types/api';
 import layout from '../styles/lobbyLayout.module.css';
 import styles from './GameSummaryPage.module.css';
 
@@ -22,14 +26,6 @@ function PersonIcon() {
   );
 }
 
-function ClockIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-      <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm.5 11H11V7h1.5v5.25l4.5 2.67-.75 1.23-3.75-2.15z" />
-    </svg>
-  );
-}
-
 function PlayIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
@@ -46,9 +42,31 @@ function HomeIcon() {
   );
 }
 
+function toScoreEntries(gs: GameStateResponse): ScoreEntry[] {
+  return gs.ranking.map((s, idx) => ({
+    playerId: s.player.id,
+    nickname: s.player.nickname,
+    totalScore: s.points,
+    rank: idx + 1,
+  }));
+}
+
 export default function GameSummaryPage() {
   const navigate = useNavigate();
-  const { finalRanking, totalRounds, gameDurationMinutes } = mockGameSummary;
+  const { session } = usePlayer();
+  const roomCode = session?.roomCode ?? '';
+
+  const [finalRanking, setFinalRanking] = useState<ScoreEntry[]>([]);
+  const [winCondition, setWinCondition] = useState(100);
+
+  useEffect(() => {
+    if (!roomCode) return;
+    getGameState(roomCode).then((gs) => {
+      setFinalRanking(toScoreEntries(gs));
+      setWinCondition(gs.pointLimit);
+    }).catch(() => {});
+  }, [roomCode]);
+
   const winner = finalRanking[0];
 
   return (
@@ -65,13 +83,15 @@ export default function GameSummaryPage() {
             <p className={styles.subtitle}>Thanks for playing PartyWire Game</p>
           </div>
 
-          <div className={styles.winnerCard}>
-            <span className={styles.winnerTrophy}>
-              <TrophyIcon size={40} />
-            </span>
-            <p className={styles.winnerName}>{winner.nickname} Wins!</p>
-            <p className={styles.winnerPts}>{winner.totalScore} points</p>
-          </div>
+          {winner && (
+            <div className={styles.winnerCard}>
+              <span className={styles.winnerTrophy}>
+                <TrophyIcon size={40} />
+              </span>
+              <p className={styles.winnerName}>{winner.nickname} Wins!</p>
+              <p className={styles.winnerPts}>{winner.totalScore} points</p>
+            </div>
+          )}
 
           <Card padded={false}>
             <div className={styles.rankingsPanel}>
@@ -92,7 +112,6 @@ export default function GameSummaryPage() {
                       <span className={`${styles.rankName} ${e.rank === 1 ? styles.rankNameWinner : ''}`}>
                         {e.nickname}
                       </span>
-                      <span className={styles.rankSub}>{e.roundsWon ?? 0} rounds won</span>
                     </div>
                     <span className={styles.rankScore}>{e.totalScore}</span>
                   </div>
@@ -118,24 +137,17 @@ export default function GameSummaryPage() {
               <p className={styles.panelLabel}>Game Statistics</p>
               <div className={styles.stats}>
                 <div className={styles.statBox}>
-                  <span className={styles.statIcon}><ClockIcon /></span>
-                  <div>
-                    <p className={styles.statLabel}>Total Rounds</p>
-                    <p className={styles.statValue}>{totalRounds}</p>
-                  </div>
-                </div>
-                <div className={styles.statBox}>
-                  <span className={styles.statIcon}><ClockIcon /></span>
-                  <div>
-                    <p className={styles.statLabel}>Game Duration</p>
-                    <p className={styles.statValue}>{gameDurationMinutes ?? 0} minutes</p>
-                  </div>
-                </div>
-                <div className={styles.statBox}>
                   <span className={styles.statIcon}><PersonIcon /></span>
                   <div>
                     <p className={styles.statLabel}>Players</p>
                     <p className={styles.statValue}>{finalRanking.length}</p>
+                  </div>
+                </div>
+                <div className={styles.statBox}>
+                  <span className={styles.statIcon}><TrophyIcon /></span>
+                  <div>
+                    <p className={styles.statLabel}>Win Condition</p>
+                    <p className={styles.statValue}>{winCondition} pts</p>
                   </div>
                 </div>
               </div>
@@ -147,18 +159,18 @@ export default function GameSummaryPage() {
               <p className={styles.panelLabel}>Score Breakdown</p>
               <div className={styles.breakdown}>
                 <div className={styles.breakdownRow}>
-                  <span className={styles.breakdownKey}>Highest scorer:</span>
-                  <span className={styles.breakdownVal}>{winner.nickname}</span>
+                  <span className={styles.breakdownKey}>Winner:</span>
+                  <span className={styles.breakdownVal}>{winner?.nickname ?? '—'}</span>
                 </div>
                 <div className={styles.breakdownRow}>
                   <span className={styles.breakdownKey}>Winning score:</span>
                   <span className={`${styles.breakdownVal} ${styles.breakdownAccent}`}>
-                    {WIN_SCORE}
+                    {winner?.totalScore ?? '—'}
                   </span>
                 </div>
                 <div className={styles.breakdownRow}>
-                  <span className={styles.breakdownKey}>Round count:</span>
-                  <span className={styles.breakdownVal}>{totalRounds}</span>
+                  <span className={styles.breakdownKey}>Point limit:</span>
+                  <span className={styles.breakdownVal}>{winCondition}</span>
                 </div>
               </div>
             </div>

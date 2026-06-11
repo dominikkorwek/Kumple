@@ -15,7 +15,7 @@ export default function AnswerOptionCard({ option, selected, onSelect, disabled 
       onClick={onSelect}
       disabled={disabled}
     >
-      <span className={styles.text}>{option.text}</span>
+      <span className={styles.text}>{option.content}</span>
       <span className={[styles.radio, selected ? styles.radioSelected : ''].filter(Boolean).join(' ')} />
     </button>
   );

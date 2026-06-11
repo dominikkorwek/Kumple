@@ -45,7 +45,8 @@ public class GameController {
             Authentication authentication
     ) {
         try {
-            GameStateResponse state = gameService.updateSettings(code, request, authentication.getName());
+            String subject = authentication != null ? authentication.getName() : null;
+            GameStateResponse state = gameService.updateSettings(code, request, subject);
             broadcast(code, state);
             return ResponseEntity.ok(state);
         } catch (IllegalArgumentException e) {
@@ -58,7 +59,8 @@ public class GameController {
     @PostMapping("/rooms/{code}/start")
     public ResponseEntity<?> startGame(@PathVariable String code, Authentication authentication) {
         try {
-            GameStateResponse state = gameService.startGame(code, authentication.getName());
+            String subject = authentication != null ? authentication.getName() : null;
+            GameStateResponse state = gameService.startGame(code, subject);
             broadcast(code, state);
             return ResponseEntity.ok(state);
         } catch (IllegalArgumentException e) {
@@ -71,7 +73,8 @@ public class GameController {
     @PostMapping("/rooms/{code}/rounds/next")
     public ResponseEntity<?> nextRound(@PathVariable String code, Authentication authentication) {
         try {
-            GameStateResponse state = gameService.nextRound(code, authentication.getName());
+            String subject = authentication != null ? authentication.getName() : null;
+            GameStateResponse state = gameService.nextRound(code, subject);
             broadcast(code, state);
             return ResponseEntity.ok(state);
         } catch (IllegalArgumentException e) {

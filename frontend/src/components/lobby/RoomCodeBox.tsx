@@ -13,13 +13,15 @@ function CopyIcon() {
 
 interface RoomCodeBoxProps {
   code: string;
-  inviteLink: string;
+  inviteLink?: string;
 }
 
 export default function RoomCodeBox({ code, inviteLink }: RoomCodeBoxProps) {
   function copy(text: string) {
     navigator.clipboard.writeText(text).catch(() => {});
   }
+
+  const link = inviteLink ?? `${window.location.origin}/join?code=${code}`;
 
   return (
     <Card padded={false}>
@@ -36,8 +38,8 @@ export default function RoomCodeBox({ code, inviteLink }: RoomCodeBoxProps) {
       <div className={styles.divider} />
 
       <div className={styles.inviteRow}>
-        <input className={styles.inviteInput} value={inviteLink} readOnly />
-        <Button variant="secondary" fullWidth={false} onClick={() => copy(inviteLink)}>
+        <input className={styles.inviteInput} value={link} readOnly />
+        <Button variant="secondary" fullWidth={false} onClick={() => copy(link)}>
           <CopyIcon /> Copy Link
         </Button>
       </div>

@@ -1,3 +1,11 @@
+-- Avatar columns (idempotent migration for existing databases)
+ALTER TABLE players ADD COLUMN IF NOT EXISTS avatar_animal varchar(20);
+ALTER TABLE players ADD COLUMN IF NOT EXISTS avatar_color varchar(30);
+UPDATE players SET avatar_animal = 'cat' WHERE avatar_animal IS NULL;
+UPDATE players SET avatar_color = '#f97316' WHERE avatar_color IS NULL;
+ALTER TABLE players ALTER COLUMN avatar_animal SET NOT NULL;
+ALTER TABLE players ALTER COLUMN avatar_color SET NOT NULL;
+
 INSERT INTO question_categories (name)
 VALUES ('Jedzenie'), ('Hobby'), ('Charakter'), ('Impreza'), ('Grupa')
 ON CONFLICT (name) DO NOTHING;
