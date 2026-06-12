@@ -77,10 +77,10 @@ export default function GameSummaryPage() {
           <div className={styles.pageHeader}>
             <span className={styles.badge}>
               <TrophyIcon size={13} />
-              Game Over
+              Koniec gry
             </span>
-            <h1 className={styles.title}>Game Complete!</h1>
-            <p className={styles.subtitle}>Thanks for playing PartyWire Game</p>
+            <h1 className={styles.title}>Gra zakończona!</h1>
+            <p className={styles.subtitle}>Dziękujemy za grę w Party Wire</p>
           </div>
 
           {winner && (
@@ -88,14 +88,14 @@ export default function GameSummaryPage() {
               <span className={styles.winnerTrophy}>
                 <TrophyIcon size={40} />
               </span>
-              <p className={styles.winnerName}>{winner.nickname} Wins!</p>
-              <p className={styles.winnerPts}>{winner.totalScore} points</p>
+              <p className={styles.winnerName}>{winner.nickname} wygrywa!</p>
+              <p className={styles.winnerPts}>{winner.totalScore} punktów</p>
             </div>
           )}
 
           <Card padded={false}>
             <div className={styles.rankingsPanel}>
-              <p className={styles.rankingsTitle}>Final Rankings</p>
+              <p className={styles.rankingsTitle}>Końcowa klasyfikacja</p>
               <div className={styles.rankingsList}>
                 {finalRanking.map((e) => (
                   <div
@@ -122,10 +122,10 @@ export default function GameSummaryPage() {
 
           <div className={styles.actions}>
             <Button onClick={() => navigate('/lobby')}>
-              <span className={styles.btnInner}><PlayIcon /> Play Again</span>
+              <span className={styles.btnInner}><PlayIcon /> Zagraj ponownie</span>
             </Button>
             <Button variant="secondary" onClick={() => navigate('/')}>
-              <span className={styles.btnInner}><HomeIcon /> Return to Main</span>
+              <span className={styles.btnInner}><HomeIcon /> Wróć na stronę główną</span>
             </Button>
           </div>
 
@@ -134,20 +134,20 @@ export default function GameSummaryPage() {
         <div className={layout.right}>
           <Card padded={false}>
             <div className={styles.panel}>
-              <p className={styles.panelLabel}>Game Statistics</p>
+              <p className={styles.panelLabel}>Statystyki gry</p>
               <div className={styles.stats}>
                 <div className={styles.statBox}>
                   <span className={styles.statIcon}><PersonIcon /></span>
                   <div>
-                    <p className={styles.statLabel}>Players</p>
+                    <p className={styles.statLabel}>Gracze</p>
                     <p className={styles.statValue}>{finalRanking.length}</p>
                   </div>
                 </div>
                 <div className={styles.statBox}>
                   <span className={styles.statIcon}><TrophyIcon /></span>
                   <div>
-                    <p className={styles.statLabel}>Win Condition</p>
-                    <p className={styles.statValue}>{winCondition} pts</p>
+                    <p className={styles.statLabel}>Warunek wygranej</p>
+                    <p className={styles.statValue}>{winCondition} pkt</p>
                   </div>
                 </div>
               </div>
@@ -156,20 +156,20 @@ export default function GameSummaryPage() {
 
           <Card padded={false}>
             <div className={styles.panel}>
-              <p className={styles.panelLabel}>Score Breakdown</p>
+              <p className={styles.panelLabel}>Podsumowanie wyników</p>
               <div className={styles.breakdown}>
                 <div className={styles.breakdownRow}>
-                  <span className={styles.breakdownKey}>Winner:</span>
+                  <span className={styles.breakdownKey}>Zwycięzca:</span>
                   <span className={styles.breakdownVal}>{winner?.nickname ?? '—'}</span>
                 </div>
                 <div className={styles.breakdownRow}>
-                  <span className={styles.breakdownKey}>Winning score:</span>
+                  <span className={styles.breakdownKey}>Wynik zwycięzcy:</span>
                   <span className={`${styles.breakdownVal} ${styles.breakdownAccent}`}>
                     {winner?.totalScore ?? '—'}
                   </span>
                 </div>
                 <div className={styles.breakdownRow}>
-                  <span className={styles.breakdownKey}>Point limit:</span>
+                  <span className={styles.breakdownKey}>Limit punktów:</span>
                   <span className={styles.breakdownVal}>{winCondition}</span>
                 </div>
               </div>
@@ -178,11 +178,11 @@ export default function GameSummaryPage() {
 
           <Card padded={false}>
             <div className={styles.panel}>
-              <p className={styles.panelLabel}>Next Actions</p>
+              <p className={styles.panelLabel}>Co dalej?</p>
               <ul className={styles.nextActions}>
-                <li>Start new game with same players</li>
-                <li>Change settings and play again</li>
-                <li>Return to main menu</li>
+                <li>Rozpocznij nową grę z tymi samymi graczami</li>
+                <li>Zmień ustawienia i zagraj ponownie</li>
+                <li>Wróć do menu głównego</li>
               </ul>
             </div>
           </Card>

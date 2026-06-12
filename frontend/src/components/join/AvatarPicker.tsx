@@ -101,12 +101,12 @@ function FishIcon() {
 }
 
 export const ANIMALS = [
-  { id: 'cat',   label: 'Cat',   Icon: CatIcon },
+  { id: 'cat',   label: 'Kot',   Icon: CatIcon },
   { id: 'panda', label: 'Panda', Icon: PandaIcon },
-  { id: 'dog',   label: 'Dog',   Icon: DogIcon },
-  { id: 'snail', label: 'Snail', Icon: SnailIcon },
-  { id: 'bird',  label: 'Bird',  Icon: BirdIcon },
-  { id: 'fish',  label: 'Fish',  Icon: FishIcon },
+  { id: 'dog',   label: 'Pies',  Icon: DogIcon },
+  { id: 'snail', label: 'Ślimak', Icon: SnailIcon },
+  { id: 'bird',  label: 'Ptak',  Icon: BirdIcon },
+  { id: 'fish',  label: 'Ryba',  Icon: FishIcon },
 ];
 
 interface AvatarDisplayProps {
@@ -138,7 +138,7 @@ interface AvatarPickerProps {
 export default function AvatarPicker({ value, onChange }: AvatarPickerProps) {
   return (
     <div className={styles.picker}>
-      <p className={styles.sectionLabel}>Your Avatar</p>
+      <p className={styles.sectionLabel}>Twój awatar</p>
 
       <div className={styles.body}>
         <AvatarDisplay animalId={value.animalId} color={value.color} size={64} />

@@ -12,10 +12,10 @@ const DURATION: Record<Phase, number> = {
 };
 
 const OPTIONS = [
-  { id: 'a', text: 'Binge-watching series', votes: 3, pct: 75, winner: true },
-  { id: 'b', text: 'Midnight cereal runs',  votes: 1, pct: 25, winner: false },
-  { id: 'c', text: 'Singing in the shower', votes: 0, pct: 0,  winner: false },
-  { id: 'd', text: 'Collecting keychains',  votes: 0, pct: 0,  winner: false },
+  { id: 'a', text: 'Maraton seriali', votes: 3, pct: 75, winner: true },
+  { id: 'b', text: 'Nocne wypady po płatki', votes: 1, pct: 25, winner: false },
+  { id: 'c', text: 'Śpiew pod prysznicem', votes: 0, pct: 0,  winner: false },
+  { id: 'd', text: 'Kolekcjonowanie breloczków',  votes: 0, pct: 0,  winner: false },
 ];
 
 const PLAYERS = [
@@ -69,7 +69,7 @@ export default function GamePreview() {
       <div className={styles.header}>
         <span className={styles.liveBadge}>
           <span className={styles.liveDot} />
-          Live Demo
+          Demo na żywo
         </span>
         <div className={styles.phasePips}>
           {PHASE_ORDER.map((p, i) => (
@@ -77,7 +77,7 @@ export default function GamePreview() {
           ))}
         </div>
         <span className={styles.phaseLabel}>
-          {phase === 'question' ? 'Answering' : phase === 'voting' ? 'Votes in' : 'Results!'}
+          {phase === 'question' ? 'Odpowiadanie' : phase === 'voting' ? 'Głosowanie' : 'Wyniki!'}
         </span>
       </div>
 
@@ -87,13 +87,13 @@ export default function GamePreview() {
           {phase === 'question' && (
             <div className={styles.fade}>
               <div className={styles.roundRow}>
-                <span className={styles.roundTag}>Round 3 · Personal Habits</span>
+                <span className={styles.roundTag}>Runda 3 · Nawyki</span>
                 <span className={styles.timerNum}>{timeLeft}s</span>
               </div>
               <div className={styles.timerTrack}>
                 <div className={styles.timerFill} style={{ animationDuration: `${DURATION.question}ms` }} />
               </div>
-              <p className={styles.question}>What is Ania's guilty pleasure?</p>
+              <p className={styles.question}>Jaka jest ukryta słabość Ani?</p>
               <div className={styles.options}>
                 {OPTIONS.map(opt => (
                   <div key={opt.id} className={styles.option}>
@@ -108,7 +108,7 @@ export default function GamePreview() {
                     <span key={p.id} className={styles.thinkDot} style={{ animationDelay: `${i * 0.18}s`, background: p.color }} />
                   ))}
                 </div>
-                <span>4 players thinking…</span>
+                <span>4 graczy myśli…</span>
               </div>
             </div>
           )}
@@ -116,16 +116,18 @@ export default function GamePreview() {
           {phase === 'voting' && (
             <div className={styles.fade}>
               <div className={styles.roundRow}>
-                <span className={styles.roundTag}>Round 3 · Personal Habits</span>
-                <span className={styles.allVoted}>✓ All voted!</span>
+                <span className={styles.roundTag}>Runda 3 · Nawyki</span>
+                <span className={styles.allVoted}>✓ Wszyscy zagłosowali!</span>
               </div>
-              <p className={styles.question}>What is Ania's guilty pleasure?</p>
+              <p className={styles.question}>Jaka jest ukryta słabość Ani?</p>
               <div className={styles.optionsVote}>
                 {OPTIONS.map((opt, i) => (
                   <div key={opt.id} className={styles.optionVote} style={{ animationDelay: `${i * 0.08}s` }}>
                     <div className={styles.optVoteTop}>
                       <span className={styles.optText}>{opt.text}</span>
-                      <span className={styles.voteCount}>{opt.votes} {opt.votes === 1 ? 'vote' : 'votes'}</span>
+                      <span className={styles.voteCount}>
+                        {opt.votes} {opt.votes === 1 ? 'głos' : opt.votes >= 2 && opt.votes <= 4 ? 'głosy' : 'głosów'}
+                      </span>
                     </div>
                     <div className={styles.barTrack}>
                       <div
@@ -142,11 +144,11 @@ export default function GamePreview() {
           {phase === 'results' && (
             <div className={styles.fade}>
               <div className={styles.roundRow}>
-                <span className={styles.resultTag}>🎉 Round Complete!</span>
+                <span className={styles.resultTag}>🎉 Runda zakończona!</span>
               </div>
               <div className={styles.winnerBox}>
-                <span className={styles.winnerLabel}>Winning answer</span>
-                <span className={styles.winnerText}>Binge-watching series</span>
+                <span className={styles.winnerLabel}>Zwycięska odpowiedź</span>
+                <span className={styles.winnerText}>Maraton seriali</span>
               </div>
               <div className={styles.optionsResult}>
                 {OPTIONS.map((opt, i) => (
@@ -168,7 +170,7 @@ export default function GamePreview() {
 
         <div className={styles.sidebar}>
           <span className={styles.sideTitle}>
-            {phase === 'results' ? 'Updated Scores' : 'Players'}
+            {phase === 'results' ? 'Aktualne wyniki' : 'Gracze'}
           </span>
           <div className={styles.playerList}>
             {PLAYERS.map((p, i) => {

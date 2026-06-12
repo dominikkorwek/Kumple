@@ -1,7 +1,9 @@
 package com.kumple.dto;
 
 import com.kumple.model.GameSession;
+import com.kumple.model.QuestionCategory;
 import com.kumple.model.enums.GameStatus;
+import com.kumple.model.enums.RoundType;
 
 import java.util.List;
 
@@ -12,7 +14,9 @@ public record GameStateResponse(
         int pointLimit,
         int timePerAnswer,
         RoundResponse currentRound,
-        List<ScoreResponse> ranking
+        List<ScoreResponse> ranking,
+        List<Long> excludedCategoryIds,
+        List<RoundType> excludedRoundTypes
 ) {
     public static GameStateResponse from(GameSession session, List<ScoreResponse> ranking) {
         return new GameStateResponse(
@@ -22,7 +26,9 @@ public record GameStateResponse(
                 session.getPointLimit(),
                 session.getTimePerAnswer(),
                 RoundResponse.from(session.getCurrentRound()),
-                ranking
+                ranking,
+                session.getExcludedCategories().stream().map(QuestionCategory::getId).toList(),
+                List.copyOf(session.getExcludedRoundTypes())
         );
     }
 }

@@ -9,7 +9,7 @@ export default function WaitingForQuestion({ selectedPlayerNickname }: WaitingFo
     <div className={styles.container}>
       <div className={styles.spinner} />
       <p className={styles.label}>
-        Waiting for <span className={styles.name}>{selectedPlayerNickname}</span> to create a question…
+        Oczekiwanie, aż <span className={styles.name}>{selectedPlayerNickname}</span> utworzy pytanie…
       </p>
     </div>
   );

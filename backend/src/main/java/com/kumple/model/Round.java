@@ -54,6 +54,9 @@ public class Round {
 
     private Instant completedAt;
 
+    @Column(nullable = false)
+    private boolean tiebreakRevote = false;
+
     protected Round() {}
 
     public Round(GameSession gameSession, RoundType roundType, int roundNumber, Player selectedPlayer, Question question, RoundStatus status) {
@@ -81,4 +84,6 @@ public class Round {
     public Instant getCreatedAt() { return createdAt; }
     public Instant getCompletedAt() { return completedAt; }
     public void setCompletedAt(Instant completedAt) { this.completedAt = completedAt; }
+    public boolean isTiebreakRevote() { return tiebreakRevote; }
+    public void setTiebreakRevote(boolean tiebreakRevote) { this.tiebreakRevote = tiebreakRevote; }
 }

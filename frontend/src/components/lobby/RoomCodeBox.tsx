@@ -27,11 +27,11 @@ export default function RoomCodeBox({ code, inviteLink }: RoomCodeBoxProps) {
     <Card padded={false}>
       <div className={styles.codeRow}>
         <div>
-          <p className={styles.codeLabel}>Room Code</p>
+          <p className={styles.codeLabel}>Kod pokoju</p>
           <p className={styles.codeValue}>{code}</p>
         </div>
         <Button variant="secondary" fullWidth={false} onClick={() => copy(code)}>
-          <CopyIcon /> Copy Code
+          <CopyIcon /> Kopiuj kod
         </Button>
       </div>
 
@@ -40,7 +40,7 @@ export default function RoomCodeBox({ code, inviteLink }: RoomCodeBoxProps) {
       <div className={styles.inviteRow}>
         <input className={styles.inviteInput} value={link} readOnly />
         <Button variant="secondary" fullWidth={false} onClick={() => copy(link)}>
-          <CopyIcon /> Copy Link
+          <CopyIcon /> Kopiuj link
         </Button>
       </div>
     </Card>

@@ -14,8 +14,8 @@ export default function Scoreboard({ entries, winCondition }: ScoreboardProps) {
     <Card padded={false}>
       <div className={styles.wrapper}>
         <div className={styles.header}>
-          <span className={styles.title}>Scoreboard</span>
-          <span className={styles.winLabel}>Win at {winCondition}pts</span>
+          <span className={styles.title}>Tablica wyników</span>
+          <span className={styles.winLabel}>Wygrana przy {winCondition} pkt</span>
         </div>
 
         <ul className={styles.list}>

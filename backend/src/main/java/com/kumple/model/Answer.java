@@ -49,5 +49,6 @@ public class Answer {
     public boolean isCorrect() { return correct; }
     public void setCorrect(boolean correct) { this.correct = correct; }
     public int getVoteCount() { return voteCount; }
+    public void setVoteCount(int voteCount) { this.voteCount = voteCount; }
     public void incrementVoteCount() { voteCount++; }
 }

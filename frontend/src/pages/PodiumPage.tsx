@@ -88,10 +88,10 @@ export default function PodiumPage() {
           <div className={styles.pageHeader}>
             <span className={styles.badge}>
               <TrophyIcon />
-              Victory Podium
+              Podium zwycięstwa
             </span>
-            <h1 className={styles.title}>Game Complete!</h1>
-            <p className={styles.subtitle}>Congratulations to all players</p>
+            <h1 className={styles.title}>Gra zakończona!</h1>
+            <p className={styles.subtitle}>Gratulacje dla wszystkich graczy</p>
           </div>
 
           <div className={styles.podiumWrap}>
@@ -104,7 +104,7 @@ export default function PodiumPage() {
             </div>
           </div>
 
-          <Button onClick={() => navigate('/game/summary')}>View Final Summary</Button>
+          <Button onClick={() => navigate('/game/summary')}>Zobacz podsumowanie</Button>
         </div>
 
         <div className={layout.right}>
@@ -117,18 +117,18 @@ export default function PodiumPage() {
           {winner && (
             <Card padded={false}>
               <div className={styles.panel}>
-                <p className={styles.panelLabel}>Winner Highlight</p>
+                <p className={styles.panelLabel}>Zwycięzca</p>
                 <div className={styles.winnerHighlight}>
                   <span className={styles.winnerIcon}>
                     <CrownIcon />
                   </span>
                   <div className={styles.winnerInfo}>
                     <p className={styles.winnerName}>{winner.nickname}</p>
-                    <p className={styles.winnerSub}>Reached {winCondition} points</p>
+                    <p className={styles.winnerSub}>Osiągnięto {winCondition} punktów</p>
                   </div>
                 </div>
                 <p className={styles.winnerDesc}>
-                  First player to exceed the {winCondition} point win condition. Congratulations!
+                  Pierwszy gracz, który przekroczył próg {winCondition} punktów. Gratulacje!
                 </p>
               </div>
             </Card>

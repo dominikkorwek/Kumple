@@ -6,6 +6,7 @@ import com.kumple.model.GameSession;
 import com.kumple.model.QuestionCategory;
 import com.kumple.model.Room;
 import com.kumple.model.enums.GameStatus;
+import com.kumple.model.enums.RoundType;
 import com.kumple.repository.GameSessionRepository;
 import com.kumple.repository.RoomRepository;
 import org.springframework.stereotype.Service;
@@ -59,6 +60,13 @@ public class GameService {
             List<QuestionCategory> categories = questionService.findCategories(request.excludedCategoryIds());
             session.getExcludedCategories().clear();
             session.getExcludedCategories().addAll(new HashSet<>(categories));
+        }
+        if (request.excludedRoundTypes() != null) {
+            if (request.excludedRoundTypes().size() >= RoundType.values().length) {
+                throw new IllegalArgumentException("Co najmniej jeden typ rundy musi pozostać aktywny");
+            }
+            session.getExcludedRoundTypes().clear();
+            session.getExcludedRoundTypes().addAll(request.excludedRoundTypes());
         }
         return toState(gameSessionRepository.save(session));
     }

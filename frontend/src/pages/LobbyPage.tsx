@@ -4,10 +4,10 @@ import RoomCodeBox from '../components/lobby/RoomCodeBox';
 import PlayerCard from '../components/lobby/PlayerCard';
 import GameSettingsSummary from '../components/lobby/GameSettingsSummary';
 import Button from '../components/ui/Button';
-import { leaveRoom, startGame, getGameState } from '../services/api';
+import { leaveRoom, startGame, getGameState, getCategories, updateSettings } from '../services/api';
 import { connectRoom, disconnect } from '../services/stomp';
 import { usePlayer } from '../context/PlayerContext';
-import type { PlayerResponse, RoomResponse, GameStateResponse, GameStatus } from '../types/api';
+import type { PlayerResponse, RoomResponse, GameStateResponse, GameStatus, QuestionCategoryResponse, RoundType } from '../types/api';
 import type { GameSettings, Player } from '../types/game';
 import layout from '../styles/lobbyLayout.module.css';
 import styles from './LobbyPage.module.css';
@@ -48,7 +48,10 @@ export default function LobbyPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [settings, setSettings] = useState<GameSettings>({ maxPlayers: 8, pointLimit: 100, timePerAnswer: 30 });
   const [maxPlayers, setMaxPlayers] = useState(8);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(['Personal']);
+  const [categories, setCategories] = useState<QuestionCategoryResponse[]>([]);
+  const [excludedCategoryIds, setExcludedCategoryIds] = useState<number[]>([]);
+  const [excludedRoundTypes, setExcludedRoundTypes] = useState<RoundType[]>([]);
+  const [savingSettings, setSavingSettings] = useState(false);
   const [kickTarget, setKickTarget] = useState<Player | null>(null);
   const [starting, setStarting] = useState(false);
   const [connected, setConnected] = useState(false);
@@ -64,6 +67,8 @@ export default function LobbyPage() {
         setPlayers(mapPlayers(gs.room.players));
         setSettings(toGameSettings(gs));
         setMaxPlayers(gs.room.maxPlayers);
+        setExcludedCategoryIds(gs.excludedCategoryIds ?? []);
+        setExcludedRoundTypes(gs.excludedRoundTypes ?? []);
         const status: GameStatus = gs.status;
         if (status === 'IN_PROGRESS') navigate('/game/question');
         return;
@@ -80,11 +85,17 @@ export default function LobbyPage() {
   useEffect(() => {
     if (!roomCode) return;
 
+    getCategories()
+      .then(setCategories)
+      .catch(() => {});
+
     getGameState(roomCode)
       .then((gs) => {
         setPlayers(mapPlayers(gs.room.players));
         setSettings(toGameSettings(gs));
         setMaxPlayers(gs.room.maxPlayers);
+        setExcludedCategoryIds(gs.excludedCategoryIds ?? []);
+        setExcludedRoundTypes(gs.excludedRoundTypes ?? []);
       })
       .catch(() => {});
 
@@ -93,10 +104,31 @@ export default function LobbyPage() {
     return () => { disconnect(); };
   }, [roomCode, playerId, handleMessage, mapPlayers]);
 
-  function toggleCategory(cat: string) {
-    setSelectedCategories((prev) =>
-      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
-    );
+  async function saveSettings(updates: {
+    excludedCategoryIds?: number[];
+    excludedRoundTypes?: RoundType[];
+  }) {
+    if (!isHost) return;
+    const nextCategories = updates.excludedCategoryIds ?? excludedCategoryIds;
+    const nextRoundTypes = updates.excludedRoundTypes ?? excludedRoundTypes;
+    const prevCategories = excludedCategoryIds;
+    const prevRoundTypes = excludedRoundTypes;
+    setExcludedCategoryIds(nextCategories);
+    setExcludedRoundTypes(nextRoundTypes);
+    setSavingSettings(true);
+    try {
+      await updateSettings(roomCode, {
+        pointLimit: settings.pointLimit,
+        timePerAnswer: settings.timePerAnswer,
+        excludedCategoryIds: nextCategories,
+        excludedRoundTypes: nextRoundTypes,
+      });
+    } catch {
+      setExcludedCategoryIds(prevCategories);
+      setExcludedRoundTypes(prevRoundTypes);
+    } finally {
+      setSavingSettings(false);
+    }
   }
 
   function handleKickRequest(id: string) {
@@ -134,13 +166,13 @@ export default function LobbyPage() {
           <div className={layout.left}>
             <div className={layout.pageHeader}>
               <div className={layout.titleRow}>
-                <h1 className={layout.title}>Game Lobby</h1>
+                <h1 className={layout.title}>Lobby gry</h1>
                 <span className={layout.statusBadge}>
-                  {connected ? 'Live' : 'Connecting…'}
+                  {connected ? 'Na żywo' : 'Łączenie…'}
                 </span>
               </div>
               <p className={layout.subtitle}>
-                Share the room code or invite link with your friends
+                Udostępnij kod pokoju lub link zaproszenia znajomym
               </p>
             </div>
 
@@ -149,7 +181,7 @@ export default function LobbyPage() {
             <div className={layout.playersSection}>
               <div className={layout.playersHeader}>
                 <h2 className={layout.playersTitle}>
-                  Players ({players.length}/{maxPlayers})
+                  Gracze ({players.length}/{maxPlayers})
                 </h2>
                 <div className={layout.progressTrack}>
                   <div className={layout.progressFill} style={{ width: `${fillPct}%` }} />
@@ -174,12 +206,16 @@ export default function LobbyPage() {
           <div className={layout.right}>
             <GameSettingsSummary
               settings={settings}
-              selectedCategories={selectedCategories}
-              onToggleCategory={toggleCategory}
+              categories={categories}
+              excludedCategoryIds={excludedCategoryIds}
+              excludedRoundTypes={excludedRoundTypes}
+              onCategoriesChange={isHost ? (ids) => saveSettings({ excludedCategoryIds: ids }) : undefined}
+              onRoundTypesChange={isHost ? (types) => saveSettings({ excludedRoundTypes: types }) : undefined}
               onStartGame={isHost ? handleStartGame : undefined}
               onCancel={() => navigate('/')}
               isHost={isHost}
               starting={starting}
+              savingSettings={savingSettings}
             />
           </div>
 
@@ -189,18 +225,18 @@ export default function LobbyPage() {
       {kickTarget && (
         <div className={styles.overlay} onClick={() => setKickTarget(null)}>
           <div className={styles.dialog} onClick={(e) => e.stopPropagation()}>
-            <p className={styles.dialogTitle}>Kick player?</p>
+            <p className={styles.dialogTitle}>Wyrzucić gracza?</p>
             <p className={styles.dialogBody}>
-              Are you sure you want to kick{' '}
+              Czy na pewno chcesz wyrzucić{' '}
               <span className={styles.dialogName}>{kickTarget.nickname}</span>{' '}
-              from the lobby? They will be able to rejoin using the room code.
+              z lobby? Będzie mógł dołączyć ponownie, używając kodu pokoju.
             </p>
             <div className={styles.dialogActions}>
               <Button variant="secondary" fullWidth={false} onClick={() => setKickTarget(null)}>
-                Cancel
+                Anuluj
               </Button>
               <Button fullWidth={false} onClick={confirmKick}>
-                Kick
+                Wyrzuć
               </Button>
             </div>
           </div>

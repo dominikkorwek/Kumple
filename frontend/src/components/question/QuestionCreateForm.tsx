@@ -23,11 +23,11 @@ export default function QuestionCreateForm({ onSubmit, loading, existingQuestion
   }
 
   function handleSubmit() {
-    if (!hasExisting && !questionText.trim()) { setError('Question text is required'); return; }
+    if (!hasExisting && !questionText.trim()) { setError('Treść pytania jest wymagana'); return; }
     const filled = answers.filter((a) => a.trim());
-    if (filled.length < 2) { setError('At least 2 answer options are required'); return; }
-    if (correctIndex === null) { setError('Mark one answer as correct'); return; }
-    if (!answers[correctIndex]?.trim()) { setError('Correct answer cannot be empty'); return; }
+    if (filled.length < 2) { setError('Wymagane są co najmniej 2 opcje odpowiedzi'); return; }
+    if (correctIndex === null) { setError('Oznacz jedną odpowiedź jako poprawną'); return; }
+    if (!answers[correctIndex]?.trim()) { setError('Poprawna odpowiedź nie może być pusta'); return; }
     setError('');
     onSubmit(hasExisting ? '' : questionText.trim(), answers, correctIndex);
   }
@@ -39,29 +39,29 @@ export default function QuestionCreateForm({ onSubmit, loading, existingQuestion
       <div className={styles.header}>
         {hasExisting ? (
           <>
-            <span className={styles.badge}>Your turn to answer</span>
-            <h2 className={styles.title}>Provide Your Answers</h2>
-            <p className={styles.hint}>Add answer options and mark YOUR real answer as correct. Others will try to guess it!</p>
+            <span className={styles.badge}>Twoja kolej na odpowiedź</span>
+            <h2 className={styles.title}>Podaj swoje odpowiedzi</h2>
+            <p className={styles.hint}>Dodaj opcje odpowiedzi i oznacz SWOJĄ prawdziwą odpowiedź jako poprawną. Inni będą próbowali ją zgadnąć!</p>
           </>
         ) : (
           <>
-            <span className={styles.badge}>Your turn to create</span>
-            <h2 className={styles.title}>Create a Question</h2>
-            <p className={styles.hint}>Write a question and provide answer options. Mark the correct one.</p>
+            <span className={styles.badge}>Twoja kolej na tworzenie</span>
+            <h2 className={styles.title}>Utwórz pytanie</h2>
+            <p className={styles.hint}>Napisz pytanie i podaj opcje odpowiedzi. Oznacz poprawną.</p>
           </>
         )}
       </div>
 
       {hasExisting ? (
         <div className={styles.section}>
-          <p className={styles.sectionLabel}>Question</p>
+          <p className={styles.sectionLabel}>Pytanie</p>
           <p className={styles.existingQuestion}>{existingQuestion}</p>
         </div>
       ) : (
       <div className={styles.section}>
         <Input
-          label="Question"
-          placeholder="e.g. What did I do last weekend?"
+          label="Pytanie"
+          placeholder="np. Co robiłem w ostatni weekend?"
           value={questionText}
           onChange={(e) => setQuestionText(e.target.value)}
           maxLength={200}
@@ -70,7 +70,7 @@ export default function QuestionCreateForm({ onSubmit, loading, existingQuestion
       )}
 
       <div className={styles.section}>
-        <p className={styles.sectionLabel}>Answer Options</p>
+        <p className={styles.sectionLabel}>Opcje odpowiedzi</p>
         <div className={styles.answerGrid}>
           {answers.map((ans, i) => (
             <div key={i} className={styles.answerRow}>
@@ -78,13 +78,13 @@ export default function QuestionCreateForm({ onSubmit, loading, existingQuestion
                 className={[styles.correctBtn, correctIndex === i ? styles.correctBtnActive : ''].filter(Boolean).join(' ')}
                 onClick={() => setCorrectIndex(i)}
                 type="button"
-                aria-label={`Mark answer ${i + 1} as correct`}
+                aria-label={`Oznacz odpowiedź ${i + 1} jako poprawną`}
               >
                 {correctIndex === i ? '✓' : String.fromCharCode(65 + i)}
               </button>
               <input
                 className={styles.answerInput}
-                placeholder={`Answer ${String.fromCharCode(65 + i)}`}
+                placeholder={`Odpowiedź ${String.fromCharCode(65 + i)}`}
                 value={ans}
                 onChange={(e) => updateAnswer(i, e.target.value)}
                 maxLength={200}
@@ -97,7 +97,7 @@ export default function QuestionCreateForm({ onSubmit, loading, existingQuestion
       {error && <p className={styles.error}>{error}</p>}
 
       <Button onClick={handleSubmit} disabled={!canSubmit || loading}>
-        {loading ? 'Submitting…' : 'Submit Question'}
+        {loading ? 'Wysyłanie…' : 'Wyślij pytanie'}
       </Button>
     </div>
   );

@@ -30,13 +30,13 @@ export default function FreeTextAnswer({
         {submitted ? (
           <div className={styles.waiting}>
             <span className={styles.check}>✓</span>
-            <p className={styles.waitLabel}>Answer submitted! Waiting for others…</p>
+            <p className={styles.waitLabel}>Odpowiedź wysłana! Oczekiwanie na innych…</p>
           </div>
         ) : (
           <>
             <textarea
               className={styles.textarea}
-              placeholder="Write your answer…"
+              placeholder="Napisz swoją odpowiedź…"
               value={freeText}
               onChange={(e) => onFreeTextChange(e.target.value)}
               maxLength={500}
@@ -53,7 +53,7 @@ export default function FreeTextAnswer({
 
   return (
     <div className={styles.container}>
-      <p className={styles.votePrompt}>Vote for the best answer:</p>
+      <p className={styles.votePrompt}>Głosuj na najlepszą odpowiedź:</p>
       <div className={styles.voteList}>
         {otherAnswers.map((ans) => (
           <button
@@ -67,7 +67,7 @@ export default function FreeTextAnswer({
           </button>
         ))}
         {otherAnswers.length === 0 && (
-          <p className={styles.noAnswers}>No answers to vote on yet.</p>
+          <p className={styles.noAnswers}>Brak odpowiedzi do głosowania.</p>
         )}
       </div>
     </div>

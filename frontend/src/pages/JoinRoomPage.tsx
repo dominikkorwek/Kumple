@@ -5,11 +5,14 @@ import Input from '../components/ui/Input';
 import Card from '../components/ui/Card';
 import AvatarPicker, { AvatarDisplay, AVATAR_COLORS } from '../components/join/AvatarPicker';
 import type { AvatarConfig } from '../components/join/AvatarPicker';
-import { getRoomByCode, joinRoom, createRoom, updateSettings } from '../services/api';
+import { getRoomByCode, joinRoom, createRoom, updateSettings, getCategories } from '../services/api';
 import { usePlayer } from '../context/PlayerContext';
 import { PENDING_SETTINGS_KEY } from './CreateRoomPage';
 import type { PendingRoomSettings } from './CreateRoomPage';
-import type { RoomResponse } from '../types/api';
+import { includedCategoryCount } from '../components/settings/CategorySelector';
+import { includedRoundTypeCount } from '../components/settings/RoundTypeSelector';
+import { ALL_ROUND_TYPES } from '../constants/roundTypes';
+import type { RoomResponse, QuestionCategoryResponse } from '../types/api';
 import Toast from '../components/ui/Toast';
 import layout from '../styles/lobbyLayout.module.css';
 import styles from './JoinRoomPage.module.css';
@@ -52,6 +55,13 @@ export default function JoinRoomPage() {
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState('');
   const [toast, setToast] = useState('');
+  const [categories, setCategories] = useState<QuestionCategoryResponse[]>([]);
+
+  useEffect(() => {
+    getCategories()
+      .then(setCategories)
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (isHost) {
@@ -62,12 +72,12 @@ export default function JoinRoomPage() {
       return;
     }
     if (!code) {
-      setRoomError('No room code provided');
+      setRoomError('Nie podano kodu pokoju');
       return;
     }
     getRoomByCode(code)
       .then(setRoom)
-      .catch(() => setRoomError('Room not found'));
+      .catch(() => setRoomError('Nie znaleziono pokoju'));
   }, [code, isHost]);
 
   async function handleJoin() {
@@ -80,12 +90,19 @@ export default function JoinRoomPage() {
 
     try {
       if (isHost) {
-        const settings = pendingSettings ?? { maxPlayers: 8, pointLimit: 100, timePerAnswer: 30, excludedCategoryIds: [] };
+        const settings = pendingSettings ?? {
+          maxPlayers: 8,
+          pointLimit: 100,
+          timePerAnswer: 30,
+          excludedCategoryIds: [],
+          excludedRoundTypes: [],
+        };
         const { player, room: newRoom } = await createRoom(trimmed, settings.maxPlayers, avatar.animalId, avatar.color);
         await updateSettings(newRoom.code, {
           pointLimit: settings.pointLimit,
           timePerAnswer: settings.timePerAnswer,
           excludedCategoryIds: settings.excludedCategoryIds,
+          excludedRoundTypes: settings.excludedRoundTypes,
         });
         sessionStorage.removeItem(PENDING_SETTINGS_KEY);
         setSession({
@@ -115,7 +132,7 @@ export default function JoinRoomPage() {
       });
       navigate('/lobby');
     } catch (e) {
-      setApiError(e instanceof Error ? e.message : 'Failed to join room');
+      setApiError(e instanceof Error ? e.message : 'Nie udało się dołączyć do pokoju');
     } finally {
       setLoading(false);
     }
@@ -136,19 +153,19 @@ export default function JoinRoomPage() {
         <div className={layout.left}>
 
           <button className={styles.backLink} onClick={() => navigate(isHost ? '/create-room' : '/')}>
-            ← {isHost ? 'Back to room setup' : 'Back to home'}
+            ← {isHost ? 'Wróć do konfiguracji pokoju' : 'Wróć na stronę główną'}
           </button>
 
           <div className={styles.pageHeader}>
             <span className={styles.badge}>
               <DoorIcon />
-              {isHost ? 'Your Profile' : 'Join Room'}
+              {isHost ? 'Twój profil' : 'Dołącz do pokoju'}
             </span>
-            <h1 className={styles.title}>{isHost ? 'Set Up Your Profile' : 'Join Game Room'}</h1>
+            <h1 className={styles.title}>{isHost ? 'Skonfiguruj swój profil' : 'Dołącz do gry'}</h1>
             <p className={styles.subtitle}>
               {isHost
-                ? 'Enter your nickname and pick an avatar — your room will be created when you continue'
-                : 'Enter your nickname and pick an avatar to join the session'}
+                ? 'Wpisz nickname i wybierz awatar — pokój zostanie utworzony po kontynuacji'
+                : 'Wpisz nickname i wybierz awatar, aby dołączyć do sesji'}
             </p>
           </div>
 
@@ -156,17 +173,17 @@ export default function JoinRoomPage() {
 
           <Card padded={false}>
             <div className={styles.roomConfirm}>
-              <span className={styles.roomLabel}>Room code</span>
+              <span className={styles.roomLabel}>Kod pokoju</span>
               <span className={styles.roomCode}>{code || '—'}</span>
-              {isFull && !isHost && <span className={styles.fullBadge}>Room full</span>}
+              {isFull && !isHost && <span className={styles.fullBadge}>Pokój pełny</span>}
             </div>
           </Card>
 
           <AvatarPicker value={avatar} onChange={setAvatar} />
 
           <Input
-            label="Your nickname"
-            placeholder="e.g. Marek"
+            label="Twój nickname"
+            placeholder="np. Marek"
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
@@ -180,7 +197,7 @@ export default function JoinRoomPage() {
             onClick={handleJoin}
             disabled={loading || (!isHost && isFull)}
           >
-            {loading ? (isHost ? 'Creating room…' : 'Joining…') : isHost ? 'Create Room & Enter Lobby' : 'Join Game'}
+            {loading ? (isHost ? 'Tworzenie pokoju…' : 'Dołączanie…') : isHost ? 'Utwórz pokój i wejdź do lobby' : 'Dołącz do gry'}
           </Button>
 
         </div>
@@ -189,14 +206,14 @@ export default function JoinRoomPage() {
 
           <Card padded={false}>
             <div className={styles.panel}>
-              <p className={styles.panelLabel}>Room Preview</p>
+              <p className={styles.panelLabel}>Podgląd pokoju</p>
 
               <div className={styles.playerCount}>
                 <PersonIcon size={16} />
                 <span>
                   {isHost
-                    ? `1 / ${previewMaxPlayers} players`
-                    : room ? `${room.currentPlayers + 1} / ${room.maxPlayers} players` : '— / —'}
+                    ? `1 / ${previewMaxPlayers} graczy`
+                    : room ? `${room.currentPlayers + 1} / ${room.maxPlayers} graczy` : '— / —'}
                 </span>
               </div>
 
@@ -216,8 +233,8 @@ export default function JoinRoomPage() {
 
                 <div className={`${styles.playerRow} ${styles.youRow}`}>
                   <AvatarDisplay animalId={avatar.animalId} color={avatar.color} size={28} />
-                  <span className={styles.playerName}>{nickname.trim() || 'You'}</span>
-                  <span className={styles.youTag}>{isHost ? 'Host' : 'Joining…'}</span>
+                  <span className={styles.playerName}>{nickname.trim() || 'Ty'}</span>
+                  <span className={styles.youTag}>{isHost ? 'Host' : 'Dołączasz…'}</span>
                 </div>
 
                 {emptySlots > 0 &&
@@ -226,7 +243,7 @@ export default function JoinRoomPage() {
                       <div className={`${styles.playerAvatar} ${styles.emptyAvatar}`}>
                         <PersonIcon size={14} />
                       </div>
-                      <span className={styles.emptySlot}>Waiting for player…</span>
+                      <span className={styles.emptySlot}>Oczekiwanie na gracza…</span>
                     </div>
                   ))}
 
@@ -237,24 +254,40 @@ export default function JoinRoomPage() {
           {(isHost ? pendingSettings : room) && (
             <Card padded={false}>
               <div className={styles.panel}>
-                <p className={styles.panelLabel}>Game Settings</p>
+                <p className={styles.panelLabel}>Ustawienia gry</p>
                 <div className={styles.settingsList}>
                   <div className={styles.settingRow}>
-                    <span className={styles.settingKey}>Points to win</span>
+                    <span className={styles.settingKey}>Punkty do wygranej</span>
                     <span className={styles.settingVal}>
                       {isHost ? pendingSettings!.pointLimit : '—'}
                     </span>
                   </div>
                   <div className={styles.settingRow}>
-                    <span className={styles.settingKey}>Time per answer</span>
+                    <span className={styles.settingKey}>Czas na odpowiedź</span>
                     <span className={styles.settingVal}>
                       {isHost ? `${pendingSettings!.timePerAnswer}s` : '—'}
                     </span>
                   </div>
                   <div className={styles.settingRow}>
-                    <span className={styles.settingKey}>Max players</span>
+                    <span className={styles.settingKey}>Maks. graczy</span>
                     <span className={styles.settingVal}>{previewMaxPlayers}</span>
                   </div>
+                  {isHost && pendingSettings && categories.length > 0 && (
+                    <div className={styles.settingRow}>
+                      <span className={styles.settingKey}>Kategorie</span>
+                      <span className={styles.settingVal}>
+                        {includedCategoryCount(categories, pendingSettings.excludedCategoryIds)}/{categories.length} aktywne
+                      </span>
+                    </div>
+                  )}
+                  {isHost && pendingSettings && (
+                    <div className={styles.settingRow}>
+                      <span className={styles.settingKey}>Typy rund</span>
+                      <span className={styles.settingVal}>
+                        {includedRoundTypeCount(pendingSettings.excludedRoundTypes)}/{ALL_ROUND_TYPES.length} aktywne
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             </Card>

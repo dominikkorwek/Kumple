@@ -145,7 +145,7 @@ export default function QuestionPage() {
   const totalPlayers = gameState?.room.currentPlayers ?? 0;
 
   function renderQuestionContent() {
-    if (!round) return <div className={styles.loadingText}>Loading round…</div>;
+    if (!round) return <div className={styles.loadingText}>Ładowanie rundy…</div>;
 
     if (round.status === 'WAITING_FOR_QUESTION') {
       if (isSelectedPlayer) {
@@ -155,28 +155,36 @@ export default function QuestionPage() {
             : undefined;
         return <QuestionCreateForm onSubmit={handleCreateQuestion} loading={loading} existingQuestion={existingQ} />;
       }
-      return <WaitingForQuestion selectedPlayerNickname={round.selectedPlayer?.nickname ?? 'Player'} />;
+      return <WaitingForQuestion selectedPlayerNickname={round.selectedPlayer?.nickname ?? 'Gracz'} />;
     }
 
     if (round.status === 'WAITING_FOR_ANSWERS' || round.status === 'COMPLETED') {
       const rt = round.roundType;
 
       if (rt === 'VOTE_PERSON') {
+        const votePlayers = round.answers
+          .map((a) => a.targetPlayer)
+          .filter((p): p is NonNullable<typeof p> => p != null);
+
         return (
           <>
             <h2 className={styles.questionText}>{round.question?.content ?? ''}</h2>
+            {round.tiebreakRevote && (
+              <p className={styles.tiebreakNotice}>
+                Remis! Głosuj ponownie — w grze zostały tylko osoby z remisem.
+              </p>
+            )}
             <VotePersonGrid
-              players={gameState?.room.players ?? []}
+              players={votePlayers}
               selectedId={selectedPersonId}
               onSelect={(id) => {
                 const ans = round.answers.find((a) => a.targetPlayer?.id === id);
                 if (ans) { setSelectedPersonId(id); setSelectedOptionId(ans.id); }
               }}
               disabled={submitted || loading}
-              currentPlayerId={playerId}
             />
             {renderSubmitBar(<Button fullWidth={false} disabled={!selectedPersonId || submitted || loading} onClick={() => handleSubmitAnswer(selectedOptionId, null, null)}>
-              {submitted ? 'Submitted' : 'Vote'}
+              {submitted ? 'Wysłano' : 'Głosuj'}
             </Button>)}
           </>
         );
@@ -202,11 +210,11 @@ export default function QuestionPage() {
             {renderSubmitBar(
               phase === 'writing' ? (
                 <Button fullWidth={false} disabled={!freeText.trim() || submitted || loading} onClick={() => handleSubmitAnswer(null, freeText, null)}>
-                  {submitted ? 'Submitted' : loading ? 'Submitting…' : 'Submit Answer'}
+                  {submitted ? 'Wysłano' : loading ? 'Wysyłanie…' : 'Wyślij odpowiedź'}
                 </Button>
               ) : (
                 <Button fullWidth={false} disabled={!selectedVoteAnswerId || submitted || loading} onClick={() => handleSubmitAnswer(null, null, selectedVoteAnswerId)}>
-                  {submitted ? 'Voted' : loading ? 'Voting…' : 'Vote for Best'}
+                  {submitted ? 'Zagłosowano' : loading ? 'Głosowanie…' : 'Głosuj na najlepszą'}
                 </Button>
               )
             )}
@@ -219,12 +227,12 @@ export default function QuestionPage() {
           {round.selectedPlayer && (
             <Card padded={false}>
               <div className={styles.playerInfo}>
-                <span className={styles.aboutBadge}>About this player</span>
+                <span className={styles.aboutBadge}>O tym graczu</span>
                 <div className={styles.playerRow}>
                   <div className={styles.playerAvatar}><PersonIcon /></div>
                   <div>
                     <p className={styles.playerName}>{round.selectedPlayer.nickname}</p>
-                    <p className={styles.playerSubtitle}>Selected player for this round</p>
+                    <p className={styles.playerSubtitle}>Wybrany gracz w tej rundzie</p>
                   </div>
                 </div>
               </div>
@@ -247,7 +255,7 @@ export default function QuestionPage() {
 
           {renderSubmitBar(
             <Button fullWidth={false} disabled={!selectedOptionId || submitted || loading} onClick={() => handleSubmitAnswer(selectedOptionId, null, null)}>
-              {submitted ? 'Submitted' : loading ? 'Submitting…' : 'Submit Answer'}
+              {submitted ? 'Wysłano' : loading ? 'Wysyłanie…' : 'Wyślij odpowiedź'}
             </Button>
           )}
         </>
@@ -262,7 +270,7 @@ export default function QuestionPage() {
       <div className={styles.bottomBar}>
         <div className={styles.answeredInfo}>
           <PersonIcon />
-          <span>{answeredCount} of {totalPlayers} players answered</span>
+          <span>{answeredCount} z {totalPlayers} graczy odpowiedziało</span>
         </div>
         {actionButton}
       </div>
@@ -292,22 +300,22 @@ export default function QuestionPage() {
 
             <Card padded={false}>
               <div className={styles.sideSection}>
-                <p className={styles.sideTitle}>Round Status</p>
+                <p className={styles.sideTitle}>Status rundy</p>
                 <div className={styles.statusList}>
                   <div className={styles.statusItem}>
                     <span className={[styles.statusDot, round?.status !== 'WAITING_FOR_QUESTION' ? styles.statusDone : styles.statusActive].join(' ')} />
-                    <span className={styles.statusText}>Question ready</span>
+                    <span className={styles.statusText}>Pytanie gotowe</span>
                   </div>
                   <div className={styles.statusItem}>
                     <span className={[styles.statusDot, round?.status === 'WAITING_FOR_ANSWERS' ? styles.statusActive : round?.status === 'REVEALING' || round?.status === 'COMPLETED' ? styles.statusDone : styles.statusPending].join(' ')} />
                     <span className={[styles.statusText, round?.status === 'WAITING_FOR_ANSWERS' ? styles.statusTextActive : styles.statusTextMuted].join(' ')}>
-                      Waiting for answers
+                      Oczekiwanie na odpowiedzi
                     </span>
                   </div>
                   <div className={styles.statusItem}>
                     <span className={[styles.statusDot, round?.status === 'REVEALING' ? styles.statusActive : styles.statusPending].join(' ')} />
                     <span className={[styles.statusText, styles.statusTextMuted].join(' ')}>
-                      Reveal results
+                      Ujawnienie wyników
                     </span>
                   </div>
                 </div>

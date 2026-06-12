@@ -63,6 +63,7 @@ export interface RoundResponse {
   selectedPlayer: PlayerResponse | null;
   winningAnswer: AnswerResponse | null;
   answers: AnswerResponse[];
+  tiebreakRevote: boolean;
 }
 
 export interface GameStateResponse {
@@ -73,6 +74,8 @@ export interface GameStateResponse {
   timePerAnswer: number;
   currentRound: RoundResponse | null;
   ranking: ScoreResponse[];
+  excludedCategoryIds: number[];
+  excludedRoundTypes: RoundType[];
 }
 
 export interface CreateRoomRequest {
@@ -96,6 +99,7 @@ export interface GameSettingsRequest {
   pointLimit: number;
   timePerAnswer: number;
   excludedCategoryIds: number[];
+  excludedRoundTypes: RoundType[];
 }
 
 export interface AnswerOptionRequest {

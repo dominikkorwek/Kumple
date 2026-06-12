@@ -6,6 +6,8 @@ UPDATE players SET avatar_color = '#f97316' WHERE avatar_color IS NULL;
 ALTER TABLE players ALTER COLUMN avatar_animal SET NOT NULL;
 ALTER TABLE players ALTER COLUMN avatar_color SET NOT NULL;
 
+ALTER TABLE rounds ADD COLUMN IF NOT EXISTS tiebreak_revote boolean NOT NULL DEFAULT false;
+
 INSERT INTO question_categories (name)
 VALUES ('Jedzenie'), ('Hobby'), ('Charakter'), ('Impreza'), ('Grupa')
 ON CONFLICT (name) DO NOTHING;

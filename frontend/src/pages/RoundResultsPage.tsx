@@ -89,35 +89,39 @@ export default function RoundResultsPage() {
         <div className={layout.left}>
           <div className={styles.pageHeader}>
             <span className={styles.roundBadge}>
-              Round {round?.roundNumber ?? '—'} Complete
+              Runda {round?.roundNumber ?? '—'} zakończona
             </span>
-            <h1 className={styles.title}>Round Results</h1>
+            <h1 className={styles.title}>Wyniki rundy</h1>
           </div>
 
           {winningAnswer ? (
             <WinnerCard winningAnswerText={winningAnswer.content} voteCount={winningAnswer.voteCount} />
+          ) : round?.roundType === 'VOTE_PERSON' && round.status === 'COMPLETED' ? (
+            <WinnerCard winningAnswerText="Remis — brak punktów" voteCount={0} />
           ) : (
-            <WinnerCard winningAnswerText="Waiting for result…" />
+            <WinnerCard winningAnswerText="Oczekiwanie na wynik…" />
           )}
 
           <div className={styles.whySection}>
-            <p className={styles.whyTitle}>Why this answer won</p>
+            <p className={styles.whyTitle}>Dlaczego ta odpowiedź wygrała</p>
             <div className={styles.whyBox}>
               <p className={styles.whyText}>
                 {winningAnswer
-                  ? `Most players voted for "${winningAnswer.content}" as the correct answer.`
-                  : 'Results are being calculated…'}
+                  ? `Większość graczy zagłosowała na „${winningAnswer.content}" jako poprawną odpowiedź.`
+                  : round?.roundType === 'VOTE_PERSON' && round.status === 'COMPLETED'
+                    ? 'Remis po ponownym głosowaniu — nikt nie otrzymał punktów w tej rundzie.'
+                    : 'Wyniki są obliczane…'}
               </p>
             </div>
           </div>
 
           {isHost && (
             <Button onClick={handleNextRound} disabled={nextLoading}>
-              {nextLoading ? 'Loading…' : 'Continue to Next Round'}
+              {nextLoading ? 'Ładowanie…' : 'Przejdź do następnej rundy'}
             </Button>
           )}
           {!isHost && (
-            <p className={styles.waitingText}>Waiting for host to start next round…</p>
+            <p className={styles.waitingText}>Oczekiwanie, aż host rozpocznie następną rundę…</p>
           )}
         </div>
 
@@ -139,9 +143,9 @@ export default function RoundResultsPage() {
           {leader && (
             <Card padded={false}>
               <div className={styles.panel}>
-                <p className={styles.panelLabel}>Progress to Win</p>
+                <p className={styles.panelLabel}>Postęp do wygranej</p>
                 <div className={styles.progressRow}>
-                  <span className={styles.progressLeader}>{leader.nickname} (leading)</span>
+                  <span className={styles.progressLeader}>{leader.nickname} (lider)</span>
                   <span className={styles.progressValue}>{leader.totalScore}/{winCondition}</span>
                 </div>
                 <div className={styles.progressTrack}>

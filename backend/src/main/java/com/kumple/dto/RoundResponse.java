@@ -14,7 +14,8 @@ public record RoundResponse(
         QuestionResponse question,
         PlayerResponse selectedPlayer,
         AnswerResponse winningAnswer,
-        List<AnswerResponse> answers
+        List<AnswerResponse> answers,
+        boolean tiebreakRevote
 ) {
     public static RoundResponse from(Round round) {
         if (round == null) return null;
@@ -26,7 +27,8 @@ public record RoundResponse(
                 QuestionResponse.from(round.getQuestion()),
                 round.getSelectedPlayer() != null ? PlayerResponse.from(round.getSelectedPlayer()) : null,
                 round.getWinningAnswer() != null ? AnswerResponse.from(round.getWinningAnswer()) : null,
-                round.getAnswers().stream().map(AnswerResponse::from).toList()
+                round.getAnswers().stream().map(AnswerResponse::from).toList(),
+                round.isTiebreakRevote()
         );
     }
 }

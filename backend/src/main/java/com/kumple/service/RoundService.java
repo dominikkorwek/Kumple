@@ -13,9 +13,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 @Service
 public class RoundService {
@@ -49,7 +52,7 @@ public class RoundService {
     @Transactional
     public Round createNextRound(GameSession session) {
         int roundNumber = session.getCurrentRoundNumber() + 1;
-        RoundType roundType = chooseRoundType(roundNumber);
+        RoundType roundType = chooseRoundType(session, roundNumber);
         Player selectedPlayer = roundType == RoundType.VOTE_PERSON ? null : pickPlayer(session, roundNumber);
         Question question = null;
         RoundStatus status = RoundStatus.WAITING_FOR_ANSWERS;
@@ -202,6 +205,9 @@ public class RoundService {
             List<Answer> winners = round.getAnswers().stream().filter(Answer::isCorrect).toList();
             winners.stream().findFirst().ifPresent(round::setWinningAnswer);
             awardPlayersWhoSelected(round, winners);
+        } else if (round.getRoundType() == RoundType.VOTE_PERSON) {
+            completeVotePersonRound(round);
+            return;
         } else {
             int maxVotes = round.getAnswers().stream().mapToInt(Answer::getVoteCount).max().orElse(0);
             List<Answer> winners = round.getAnswers().stream()
@@ -211,6 +217,62 @@ public class RoundService {
             awardPlayersWhoSelected(round, winners);
         }
         finishRound(round);
+    }
+
+    private void completeVotePersonRound(Round round) {
+        int maxVotes = round.getAnswers().stream().mapToInt(Answer::getVoteCount).max().orElse(0);
+        List<Answer> topAnswers = round.getAnswers().stream()
+                .filter(answer -> answer.getVoteCount() == maxVotes && maxVotes > 0)
+                .toList();
+
+        if (topAnswers.size() == 1) {
+            round.setWinningAnswer(topAnswers.get(0));
+            awardPlayersWhoSelected(round, topAnswers);
+            finishRound(round);
+            return;
+        }
+
+        if (topAnswers.isEmpty()) {
+            finishRound(round);
+            return;
+        }
+
+        if (round.isTiebreakRevote()) {
+            finishRound(round);
+            return;
+        }
+
+        startVotePersonTiebreak(round, topAnswers);
+    }
+
+    private void startVotePersonTiebreak(Round round, List<Answer> tiedAnswers) {
+        List<PlayerAnswer> existingAnswers = playerAnswerRepository.findByRoundId(round.getId());
+        playerAnswerRepository.deleteAll(existingAnswers);
+        round.getPlayerAnswers().clear();
+
+        Set<Long> tiedPlayerIds = new HashSet<>();
+        for (Answer tiedAnswer : tiedAnswers) {
+            if (tiedAnswer.getTargetPlayer() != null) {
+                tiedPlayerIds.add(tiedAnswer.getTargetPlayer().getId());
+            }
+        }
+
+        List<Answer> toRemove = round.getAnswers().stream()
+                .filter(answer -> answer.getTargetPlayer() == null || !tiedPlayerIds.contains(answer.getTargetPlayer().getId()))
+                .toList();
+        for (Answer answer : toRemove) {
+            round.getAnswers().remove(answer);
+            answerRepository.delete(answer);
+        }
+
+        for (Answer answer : round.getAnswers()) {
+            answer.setVoteCount(0);
+            answerRepository.save(answer);
+        }
+
+        round.setWinningAnswer(null);
+        round.setTiebreakRevote(true);
+        round.setStatus(RoundStatus.WAITING_FOR_ANSWERS);
     }
 
     private void finishRound(Round round) {
@@ -253,9 +315,14 @@ public class RoundService {
         }
     }
 
-    private RoundType chooseRoundType(int roundNumber) {
-        RoundType[] values = RoundType.values();
-        return values[(roundNumber - 1) % values.length];
+    private RoundType chooseRoundType(GameSession session, int roundNumber) {
+        List<RoundType> allowed = Arrays.stream(RoundType.values())
+                .filter(type -> !session.getExcludedRoundTypes().contains(type))
+                .toList();
+        if (allowed.isEmpty()) {
+            throw new IllegalStateException("Brak dostępnych typów rund");
+        }
+        return allowed.get((roundNumber - 1) % allowed.size());
     }
 
     private Player pickPlayer(GameSession session, int roundNumber) {

@@ -18,13 +18,15 @@ export default function WinnerCard({ winningAnswerText, voteCount }: WinnerCardP
     <div className={styles.card}>
       <div className={styles.header}>
         <TrophyIcon />
-        <span className={styles.headerLabel}>Winning Answer</span>
+        <span className={styles.headerLabel}>Zwycięska odpowiedź</span>
       </div>
 
       <p className={styles.answer}>{winningAnswerText}</p>
-      {voteCount != null && (
+      {voteCount != null && voteCount > 0 && (
         <p className={styles.subtitle}>
-          {voteCount} {voteCount === 1 ? 'player' : 'players'} voted for this answer
+          {voteCount}{' '}
+          {voteCount === 1 ? 'głos' : voteCount >= 2 && voteCount <= 4 ? 'głosy' : 'głosów'}{' '}
+          na tę odpowiedź
         </p>
       )}
     </div>

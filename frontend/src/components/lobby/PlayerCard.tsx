@@ -23,7 +23,7 @@ export default function PlayerCard({ player, onKick }: PlayerCardProps) {
         <div className={styles.emptyAvatar}>
           <EmptyAvatarIcon />
         </div>
-        <p className={styles.waitingText}>Waiting for player...</p>
+        <p className={styles.waitingText}>Oczekiwanie na gracza…</p>
       </div>
     );
   }
@@ -32,7 +32,7 @@ export default function PlayerCard({ player, onKick }: PlayerCardProps) {
     <div className={styles.card}>
       {!player.isHost && onKick && (
         <button className={styles.kickBtn} onClick={() => onKick(player.id)}>
-          Kick
+          Wyrzuć
         </button>
       )}
       <AvatarDisplay animalId={player.avatarAnimal} color={player.avatarColor} size={56} />
@@ -40,7 +40,7 @@ export default function PlayerCard({ player, onKick }: PlayerCardProps) {
         {player.nickname}
         {player.isHost && <span className={styles.hostStar}> ⭐</span>}
       </p>
-      <p className={styles.role}>{player.isHost ? 'Host' : 'Player'}</p>
+      <p className={styles.role}>{player.isHost ? 'Host' : 'Gracz'}</p>
       <span className={styles.onlineDot} />
     </div>
   );

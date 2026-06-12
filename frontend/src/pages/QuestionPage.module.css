@@ -91,6 +91,15 @@
   line-height: 1.4;
 }
 
+.tiebreakNotice {
+  font-size: 0.9rem;
+  color: var(--accent);
+  background: var(--accent-subtle);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+}
+
 .options {
   display: grid;
   grid-template-columns: 1fr 1fr;

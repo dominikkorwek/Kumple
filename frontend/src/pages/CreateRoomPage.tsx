@@ -4,7 +4,10 @@ import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { getCategories } from '../services/api';
-import type { QuestionCategoryResponse } from '../types/api';
+import type { QuestionCategoryResponse, RoundType } from '../types/api';
+import CategorySelector, { includedCategoryCount } from '../components/settings/CategorySelector';
+import RoundTypeSelector, { includedRoundTypeCount } from '../components/settings/RoundTypeSelector';
+import { ALL_ROUND_TYPES } from '../constants/roundTypes';
 import layout from '../styles/lobbyLayout.module.css';
 import styles from './CreateRoomPage.module.css';
 
@@ -17,6 +20,7 @@ export interface PendingRoomSettings {
   pointLimit: number;
   timePerAnswer: number;
   excludedCategoryIds: number[];
+  excludedRoundTypes: RoundType[];
 }
 
 export const PENDING_SETTINGS_KEY = 'pendingRoomSettings';
@@ -26,6 +30,7 @@ export default function CreateRoomPage() {
 
   const [categories, setCategories] = useState<QuestionCategoryResponse[]>([]);
   const [excludedIds, setExcludedIds] = useState<number[]>([]);
+  const [excludedRoundTypes, setExcludedRoundTypes] = useState<RoundType[]>([]);
   const [pointLimit, setPointLimit] = useState(100);
   const [maxPlayers, setMaxPlayers] = useState(8);
   const [timePerAnswer, setTimePerAnswer] = useState(30);
@@ -35,12 +40,6 @@ export default function CreateRoomPage() {
       .then(setCategories)
       .catch(() => {});
   }, []);
-
-  function toggleExcluded(id: number) {
-    setExcludedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-  }
 
   function handlePointLimitChange(raw: number) {
     const snapped = Math.round(raw / POINT_STEP) * POINT_STEP;
@@ -53,6 +52,7 @@ export default function CreateRoomPage() {
       pointLimit: Math.max(10, Math.min(1000, Math.round(pointLimit / POINT_STEP) * POINT_STEP)),
       timePerAnswer: Math.max(5, Math.min(120, timePerAnswer)),
       excludedCategoryIds: excludedIds,
+      excludedRoundTypes,
     };
     sessionStorage.setItem(PENDING_SETTINGS_KEY, JSON.stringify(settings));
     navigate('/join?host=true');
@@ -65,38 +65,42 @@ export default function CreateRoomPage() {
         <div className={layout.left}>
 
           <button className={styles.backLink} onClick={() => navigate('/')}>
-            ← Back to main
+            ← Wróć na stronę główną
           </button>
 
           <div className={styles.pageHeader}>
-            <h1 className={styles.title}>Create Game Room</h1>
-            <p className={styles.subtitle}>Configure your game settings, then set up your profile</p>
+            <h1 className={styles.title}>Utwórz pokój gry</h1>
+            <p className={styles.subtitle}>Skonfiguruj ustawienia gry, a potem ustaw swój profil</p>
           </div>
 
           {categories.length > 0 && (
             <div className={styles.formSection}>
-              <h2 className={styles.sectionTitle}>Excluded Categories (Optional)</h2>
-              <div className={styles.checkboxGrid}>
-                {categories.map((cat) => (
-                  <label key={cat.id} className={styles.checkboxRow}>
-                    <input
-                      type="checkbox"
-                      className={styles.checkbox}
-                      checked={excludedIds.includes(cat.id)}
-                      onChange={() => toggleExcluded(cat.id)}
-                    />
-                    <span>{cat.name}</span>
-                  </label>
-                ))}
+              <div className={styles.sectionBody}>
+                <CategorySelector
+                  categories={categories}
+                  excludedIds={excludedIds}
+                  onChange={setExcludedIds}
+                  variant="grid"
+                />
               </div>
             </div>
           )}
 
           <div className={styles.formSection}>
-            <h2 className={styles.sectionTitle}>Game Settings</h2>
+            <div className={styles.sectionBody}>
+              <RoundTypeSelector
+                excludedTypes={excludedRoundTypes}
+                onChange={setExcludedRoundTypes}
+                variant="grid"
+              />
+            </div>
+          </div>
+
+          <div className={styles.formSection}>
+            <h2 className={styles.sectionTitle}>Ustawienia gry</h2>
             <div className={styles.inputs}>
               <Input
-                label="Points to win (multiples of 10)"
+                label="Punkty do wygranej (wielokrotności 10)"
                 type="number"
                 value={pointLimit}
                 onChange={(e) => handlePointLimitChange(Number(e.target.value))}
@@ -105,7 +109,7 @@ export default function CreateRoomPage() {
                 step={POINT_STEP}
               />
               <Input
-                label={`Maximum players (${MIN_PLAYERS}–${MAX_PLAYERS})`}
+                label={`Maksymalna liczba graczy (${MIN_PLAYERS}–${MAX_PLAYERS})`}
                 type="number"
                 value={maxPlayers}
                 onChange={(e) => setMaxPlayers(Number(e.target.value))}
@@ -113,7 +117,7 @@ export default function CreateRoomPage() {
                 max={MAX_PLAYERS}
               />
               <Input
-                label="Answer time limit (seconds)"
+                label="Limit czasu na odpowiedź (sekundy)"
                 type="number"
                 value={timePerAnswer}
                 onChange={(e) => setTimePerAnswer(Number(e.target.value))}
@@ -129,28 +133,36 @@ export default function CreateRoomPage() {
 
           <Card padded={false}>
             <div className={styles.panelSection}>
-              <p className={styles.panelTitle}>Settings Summary</p>
+              <p className={styles.panelTitle}>Podsumowanie ustawień</p>
               <div className={styles.summaryRows}>
                 <div className={styles.summaryRow}>
-                  <span className={styles.summaryLabel}>Excluded</span>
-                  <span className={styles.summaryValue}>{excludedIds.length} categories</span>
+                  <span className={styles.summaryLabel}>Typy rund</span>
+                  <span className={styles.summaryValue}>
+                    {includedRoundTypeCount(excludedRoundTypes)}/{ALL_ROUND_TYPES.length} aktywne
+                  </span>
                 </div>
                 <div className={styles.summaryRow}>
-                  <span className={styles.summaryLabel}>Points to win</span>
+                  <span className={styles.summaryLabel}>Kategorie</span>
+                  <span className={styles.summaryValue}>
+                    {includedCategoryCount(categories, excludedIds)}/{categories.length} aktywne
+                  </span>
+                </div>
+                <div className={styles.summaryRow}>
+                  <span className={styles.summaryLabel}>Punkty do wygranej</span>
                   <span className={styles.summaryValue}>{pointLimit}</span>
                 </div>
                 <div className={styles.summaryRow}>
-                  <span className={styles.summaryLabel}>Max players</span>
+                  <span className={styles.summaryLabel}>Maks. graczy</span>
                   <span className={styles.summaryValue}>{maxPlayers}</span>
                 </div>
                 <div className={styles.summaryRow}>
-                  <span className={styles.summaryLabel}>Time limit</span>
+                  <span className={styles.summaryLabel}>Limit czasu</span>
                   <span className={styles.summaryValue}>{timePerAnswer}s</span>
                 </div>
               </div>
 
               <Button onClick={handleContinue} fullWidth>
-                Continue & Pick Avatar →
+                Dalej: wybierz awatar
               </Button>
             </div>
           </Card>

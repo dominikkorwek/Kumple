@@ -6,15 +6,12 @@ interface VotePersonGridProps {
   selectedId: string | null;
   onSelect: (id: string) => void;
   disabled?: boolean;
-  currentPlayerId: string;
 }
 
-export default function VotePersonGrid({ players, selectedId, onSelect, disabled, currentPlayerId }: VotePersonGridProps) {
+export default function VotePersonGrid({ players, selectedId, onSelect, disabled }: VotePersonGridProps) {
   return (
     <div className={styles.grid}>
-      {players
-        .filter((p) => p.id !== currentPlayerId)
-        .map((p) => (
+      {players.map((p) => (
           <button
             key={p.id}
             className={[styles.card, selectedId === p.id ? styles.selected : ''].filter(Boolean).join(' ')}
