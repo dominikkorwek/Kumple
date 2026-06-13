@@ -27,6 +27,10 @@ public class PlayerAnswer {
     @JoinColumn(name = "answer_id")
     private Answer answer;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "voted_answer_id")
+    private Answer votedAnswer;
+
     @Column(length = 500)
     private String freeText;
 
@@ -49,6 +53,8 @@ public class PlayerAnswer {
     public Round getRound() { return round; }
     public Player getPlayer() { return player; }
     public Answer getAnswer() { return answer; }
+    public Answer getVotedAnswer() { return votedAnswer; }
+    public void setVotedAnswer(Answer votedAnswer) { this.votedAnswer = votedAnswer; }
     public String getFreeText() { return freeText; }
     public boolean isAwardedPoint() { return awardedPoint; }
     public void setAwardedPoint(boolean awardedPoint) { this.awardedPoint = awardedPoint; }

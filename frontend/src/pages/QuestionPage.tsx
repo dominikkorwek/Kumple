@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -9,9 +9,18 @@ import WaitingForQuestion from '../components/question/WaitingForQuestion';
 import QuestionCreateForm from '../components/question/QuestionCreateForm';
 import VotePersonGrid from '../components/question/VotePersonGrid';
 import FreeTextAnswer from '../components/question/FreeTextAnswer';
-import { submitAnswer, submitQuestion, getGameState } from '../services/api';
+import RoundTypeTutorial from '../components/question/RoundTypeTutorial';
+import BriefingWaitScreen from '../components/question/BriefingWaitScreen';
+import { submitAnswer, submitQuestion, ackBriefing, getGameState, expireRoundTime } from '../services/api';
 import { connectRoom, disconnect } from '../services/stomp';
 import { usePlayer } from '../context/PlayerContext';
+import { hasSeenRoundType, markRoundTypeSeen } from '../utils/seenRoundTypes';
+import {
+  isGuessRoundType,
+  GUESS_PLAYER_HINT,
+  GUESS_SELECTED_PLAYER_HINT,
+  WAIT_FOR_OTHERS,
+} from '../constants/guessRound';
 import type { GameStateResponse, RoundResponse, AnswerResponse } from '../types/api';
 import type { ScoreEntry } from '../types/game';
 import styles from './QuestionPage.module.css';
@@ -51,6 +60,9 @@ export default function QuestionPage() {
   const [selectedVoteAnswerId, setSelectedVoteAnswerId] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [briefingLoading, setBriefingLoading] = useState(false);
+  const autoAckRoundId = useRef<number | null>(null);
+  const expiredPhaseKey = useRef<string | null>(null);
 
   const handleMessage = useCallback(
     (msg: GameStateResponse | { event?: string }) => {
@@ -63,18 +75,34 @@ export default function QuestionPage() {
       const round = gs.currentRound;
       if (!round) return;
 
-      if (round.status === 'REVEALING' || round.status === 'COMPLETED') {
+      if (round.status === 'COMPLETED') {
         navigate('/game/results');
         return;
       }
 
+      if (round.status === 'WAITING_FOR_BRIEFING') {
+        setTimerActive(false);
+        setSubmitted(false);
+        autoAckRoundId.current = null;
+        return;
+      }
+
       if (round.status === 'WAITING_FOR_ANSWERS') {
+        expiredPhaseKey.current = null;
         setTimeLeft(gs.timePerAnswer);
         setTimerActive(true);
         setSubmitted(false);
         setSelectedOptionId(null);
         setSelectedPersonId(null);
         setFreeText('');
+        setSelectedVoteAnswerId(null);
+      }
+
+      if (round.status === 'REVEALING') {
+        expiredPhaseKey.current = null;
+        setTimeLeft(gs.timePerAnswer);
+        setTimerActive(true);
+        setSubmitted(false);
         setSelectedVoteAnswerId(null);
       }
 
@@ -106,12 +134,57 @@ export default function QuestionPage() {
     return () => clearTimeout(id);
   }, [timeLeft, timerActive]);
 
+  const round: RoundResponse | null = gameState?.currentRound ?? null;
+
+  useEffect(() => {
+    if (!timerActive || timeLeft > 0 || !round) return;
+    if (round.status !== 'WAITING_FOR_ANSWERS' && round.status !== 'REVEALING') return;
+
+    const phaseKey = `${round.id}-${round.status}`;
+    if (expiredPhaseKey.current === phaseKey) return;
+    expiredPhaseKey.current = phaseKey;
+    setTimerActive(false);
+
+    let cancelled = false;
+    expireRoundTime(round.id)
+      .then((gs) => { if (!cancelled) handleMessage(gs); })
+      .catch(() => { expiredPhaseKey.current = null; });
+
+    return () => { cancelled = true; };
+  }, [timeLeft, timerActive, round, handleMessage]);
+
+  const briefingReadyIds = round?.briefingReadyPlayerIds ?? [];
+  const selfBriefingReady = briefingReadyIds.includes(playerId);
+  const needsTutorial = round ? !hasSeenRoundType(playerId, round.roundType) : false;
+
+  const handleAckBriefing = useCallback(async (markSeen: boolean) => {
+    if (!round || briefingLoading || selfBriefingReady) return;
+    setBriefingLoading(true);
+    try {
+      if (markSeen) markRoundTypeSeen(playerId, round.roundType);
+      const gs = await ackBriefing(round.id, playerId);
+      handleMessage(gs);
+    } catch {
+      // retry allowed
+    } finally {
+      setBriefingLoading(false);
+    }
+  }, [round, briefingLoading, selfBriefingReady, playerId, handleMessage]);
+
+  useEffect(() => {
+    if (!round || round.status !== 'WAITING_FOR_BRIEFING') return;
+    if (selfBriefingReady || needsTutorial) return;
+    if (autoAckRoundId.current === round.id) return;
+    autoAckRoundId.current = round.id;
+    handleAckBriefing(false);
+  }, [round, selfBriefingReady, needsTutorial, handleAckBriefing]);
+
   async function handleSubmitAnswer(answerId: number | null, ft: string | null, selectedAnswId: number | null) {
-    const round = gameState?.currentRound;
-    if (!round) return;
+    const currentRound = gameState?.currentRound;
+    if (!currentRound || submitted || loading) return;
     setLoading(true);
     try {
-      await submitAnswer(round.id, { playerId, answerId, freeText: ft, selectedAnswerId: selectedAnswId });
+      await submitAnswer(currentRound.id, { playerId, answerId, freeText: ft, selectedAnswerId: selectedAnswId });
       setSubmitted(true);
       setTimerActive(false);
     } catch {
@@ -121,15 +194,36 @@ export default function QuestionPage() {
     }
   }
 
+  function handleGuessSelect(answerId: number) {
+    if (submitted || loading) return;
+    setSelectedOptionId(answerId);
+    handleSubmitAnswer(answerId, null, null);
+  }
+
+  function handlePersonVote(personId: string, round: RoundResponse) {
+    if (submitted || loading) return;
+    const ans = round.answers.find((a) => a.targetPlayer?.id === personId);
+    if (!ans) return;
+    setSelectedPersonId(personId);
+    setSelectedOptionId(ans.id);
+    handleSubmitAnswer(ans.id, null, null);
+  }
+
+  function handleBestAnswerVote(answerId: number) {
+    if (submitted || loading) return;
+    setSelectedVoteAnswerId(answerId);
+    handleSubmitAnswer(answerId, null, null);
+  }
+
   async function handleCreateQuestion(questionContent: string, answers: string[], correctIndex: number) {
-    const round = gameState?.currentRound;
-    if (!round) return;
+    const currentRound = gameState?.currentRound;
+    if (!currentRound) return;
     setLoading(true);
     try {
       const answerOptions = answers
         .filter((a) => a.trim())
         .map((a, i) => ({ content: a, correct: i === correctIndex, targetPlayerId: null }));
-      await submitQuestion(round.id, { questionContent, answers: answerOptions, answersArePlayers: false });
+      await submitQuestion(currentRound.id, { questionContent, answers: answerOptions, answersArePlayers: false });
     } catch {
       // ignore
     } finally {
@@ -137,15 +231,45 @@ export default function QuestionPage() {
     }
   }
 
-  const round: RoundResponse | null = gameState?.currentRound ?? null;
   const scoreboard: ScoreEntry[] = gameState ? toScoreEntries(gameState) : [];
   const winCondition = gameState?.pointLimit ?? 100;
-  const isSelectedPlayer = round?.selectedPlayer?.id === playerId;
-  const answeredCount = round?.answers.filter((a) => a.author !== null).length ?? 0;
   const totalPlayers = gameState?.room.currentPlayers ?? 0;
+  const isSelectedPlayer = round?.selectedPlayer?.id === playerId;
+  const isGuessRound = round ? isGuessRoundType(round.roundType) : false;
+  const guessAnsweredCount = round?.answers.reduce((sum, a) => sum + a.voteCount, 0) ?? 0;
+  const guessExpectedCount = Math.max(0, totalPlayers - 1);
+  const answeredCount = isGuessRound ? guessAnsweredCount : (round?.answers.filter((a) => a.author !== null).length ?? 0);
+  const answeredTotal = isGuessRound ? guessExpectedCount : totalPlayers;
+  const briefingReadyCount = briefingReadyIds.length;
+
+  function renderBriefingContent() {
+    if (!round) return null;
+
+    if (needsTutorial && !selfBriefingReady) {
+      return (
+        <RoundTypeTutorial
+          roundType={round.roundType}
+          loading={briefingLoading}
+          onConfirm={() => handleAckBriefing(true)}
+        />
+      );
+    }
+
+    return (
+      <BriefingWaitScreen
+        readyCount={briefingReadyCount}
+        totalPlayers={totalPlayers}
+        selfReady={selfBriefingReady}
+      />
+    );
+  }
 
   function renderQuestionContent() {
     if (!round) return <div className={styles.loadingText}>Ładowanie rundy…</div>;
+
+    if (round.status === 'WAITING_FOR_BRIEFING') {
+      return renderBriefingContent();
+    }
 
     if (round.status === 'WAITING_FOR_QUESTION') {
       if (isSelectedPlayer) {
@@ -153,12 +277,19 @@ export default function QuestionPage() {
           (round.roundType === 'GUESS_PLAYER_ANSWER' || round.roundType === 'REUSE_QUESTION')
             ? (round.question?.content ?? undefined)
             : undefined;
-        return <QuestionCreateForm onSubmit={handleCreateQuestion} loading={loading} existingQuestion={existingQ} />;
+        return <QuestionCreateForm key={round.id} onSubmit={handleCreateQuestion} loading={loading} existingQuestion={existingQ} />;
       }
-      return <WaitingForQuestion selectedPlayerNickname={round.selectedPlayer?.nickname ?? 'Gracz'} />;
+      return (
+        <>
+          <WaitingForQuestion selectedPlayerNickname={round.selectedPlayer?.nickname ?? 'Gracz'} />
+          <p className={styles.statusHint}>
+            {round.selectedPlayer?.nickname ?? 'Wybrany gracz'} tworzy pytanie i odpowiedzi — poczekaj chwilę.
+          </p>
+        </>
+      );
     }
 
-    if (round.status === 'WAITING_FOR_ANSWERS' || round.status === 'COMPLETED') {
+    if (round.status === 'WAITING_FOR_ANSWERS' || round.status === 'REVEALING') {
       const rt = round.roundType;
 
       if (rt === 'VOTE_PERSON') {
@@ -174,35 +305,58 @@ export default function QuestionPage() {
                 Remis! Głosuj ponownie — w grze zostały tylko osoby z remisem.
               </p>
             )}
+            {!submitted && (
+              <p className={styles.statusHint}>Kliknij osobę pasującą do pytania.</p>
+            )}
+            {submitted && (
+              <p className={styles.waitingMessage}>{WAIT_FOR_OTHERS}</p>
+            )}
             <VotePersonGrid
               players={votePlayers}
               selectedId={selectedPersonId}
-              onSelect={(id) => {
-                const ans = round.answers.find((a) => a.targetPlayer?.id === id);
-                if (ans) { setSelectedPersonId(id); setSelectedOptionId(ans.id); }
-              }}
-              disabled={submitted || loading}
+              onSelect={(id) => handlePersonVote(id, round)}
+              disabled={loading}
+              locked={submitted}
             />
-            {renderSubmitBar(<Button fullWidth={false} disabled={!selectedPersonId || submitted || loading} onClick={() => handleSubmitAnswer(selectedOptionId, null, null)}>
-              {submitted ? 'Wysłano' : 'Głosuj'}
-            </Button>)}
+            {renderSubmitBar(null)}
           </>
         );
       }
 
       if (rt === 'BEST_ANSWER') {
         const myAnswer = round.answers.find((a: AnswerResponse) => a.author?.id === playerId);
-        const phase: 'writing' | 'voting' = myAnswer ? 'voting' : 'writing';
+        const phase: 'writing' | 'voting' = round.status === 'REVEALING' ? 'voting' : 'writing';
+
+        if (phase === 'voting' && !myAnswer) {
+          return (
+            <>
+              <h2 className={styles.questionText}>{round.question?.content ?? ''}</h2>
+              <p className={styles.waitingMessage}>Nie zdążyłeś wysłać odpowiedzi. Oczekiwanie na pozostałych…</p>
+              {renderSubmitBar(null, WAIT_FOR_OTHERS)}
+            </>
+          );
+        }
+
         return (
           <>
             <h2 className={styles.questionText}>{round.question?.content ?? ''}</h2>
+            {!submitted && (
+              <p className={styles.statusHint}>
+                {phase === 'writing'
+                  ? 'Napisz swoją odpowiedź i wyślij ją.'
+                  : 'Kliknij najlepszą odpowiedź (nie swoją).'}
+              </p>
+            )}
+            {submitted && phase === 'voting' && (
+              <p className={styles.waitingMessage}>{WAIT_FOR_OTHERS}</p>
+            )}
             <FreeTextAnswer
               phase={phase}
               freeText={freeText}
               onFreeTextChange={setFreeText}
               answers={round.answers}
               selectedAnswerId={selectedVoteAnswerId}
-              onSelectAnswer={(id) => setSelectedVoteAnswerId(id)}
+              onSelectAnswer={handleBestAnswerVote}
               submitted={submitted}
               currentPlayerId={playerId}
               loading={loading}
@@ -212,70 +366,131 @@ export default function QuestionPage() {
                 <Button fullWidth={false} disabled={!freeText.trim() || submitted || loading} onClick={() => handleSubmitAnswer(null, freeText, null)}>
                   {submitted ? 'Wysłano' : loading ? 'Wysyłanie…' : 'Wyślij odpowiedź'}
                 </Button>
-              ) : (
-                <Button fullWidth={false} disabled={!selectedVoteAnswerId || submitted || loading} onClick={() => handleSubmitAnswer(null, null, selectedVoteAnswerId)}>
-                  {submitted ? 'Zagłosowano' : loading ? 'Głosowanie…' : 'Głosuj na najlepszą'}
-                </Button>
-              )
+              ) : null
             )}
           </>
         );
       }
 
+      if (isGuessRoundType(rt)) {
+        return renderGuessRoundAnswers(round);
+      }
+
+      return null;
+    }
+
+    return null;
+  }
+
+  function renderGuessRoundAnswers(round: RoundResponse) {
+    if (isSelectedPlayer) {
       return (
         <>
-          {round.selectedPlayer && (
-            <Card padded={false}>
-              <div className={styles.playerInfo}>
-                <span className={styles.aboutBadge}>O tym graczu</span>
-                <div className={styles.playerRow}>
-                  <div className={styles.playerAvatar}><PersonIcon /></div>
-                  <div>
-                    <p className={styles.playerName}>{round.selectedPlayer.nickname}</p>
-                    <p className={styles.playerSubtitle}>Wybrany gracz w tej rundzie</p>
-                  </div>
+          <Card padded={false}>
+            <div className={styles.playerInfo}>
+              <span className={styles.aboutBadge}>Twoja runda</span>
+              <div className={styles.playerRow}>
+                <div className={styles.playerAvatar}><PersonIcon /></div>
+                <div>
+                  <p className={styles.playerName}>{round.selectedPlayer?.nickname}</p>
+                  <p className={styles.playerSubtitle}>Podałeś odpowiedzi — nie zgadujesz</p>
                 </div>
               </div>
-            </Card>
-          )}
+            </div>
+          </Card>
 
           <h2 className={styles.questionText}>{round.question?.content ?? ''}</h2>
+          <p className={styles.statusHint}>{GUESS_SELECTED_PLAYER_HINT}</p>
 
           <div className={styles.options}>
             {round.answers.map((opt) => (
               <AnswerOptionCard
                 key={opt.id}
                 option={{ id: opt.id, content: opt.content, correct: opt.correct, voteCount: opt.voteCount, author: null, targetPlayer: null }}
-                selected={selectedOptionId === opt.id}
-                onSelect={() => !submitted && setSelectedOptionId(opt.id)}
-                disabled={submitted || loading}
+                selected={false}
+                onSelect={() => {}}
+                readonly
               />
             ))}
           </div>
 
-          {renderSubmitBar(
-            <Button fullWidth={false} disabled={!selectedOptionId || submitted || loading} onClick={() => handleSubmitAnswer(selectedOptionId, null, null)}>
-              {submitted ? 'Wysłano' : loading ? 'Wysyłanie…' : 'Wyślij odpowiedź'}
-            </Button>
-          )}
+          {renderSubmitBar(null, WAIT_FOR_OTHERS)}
         </>
       );
     }
 
-    return null;
+    return (
+      <>
+        {round.selectedPlayer && (
+          <Card padded={false}>
+            <div className={styles.playerInfo}>
+              <span className={styles.aboutBadge}>O tym graczu</span>
+              <div className={styles.playerRow}>
+                <div className={styles.playerAvatar}><PersonIcon /></div>
+                <div>
+                  <p className={styles.playerName}>{round.selectedPlayer.nickname}</p>
+                  <p className={styles.playerSubtitle}>Wybrany gracz w tej rundzie</p>
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        <h2 className={styles.questionText}>{round.question?.content ?? ''}</h2>
+        {!submitted && (
+          <p className={styles.statusHint}>{GUESS_PLAYER_HINT}</p>
+        )}
+        {submitted && (
+          <p className={styles.waitingMessage}>{WAIT_FOR_OTHERS}</p>
+        )}
+
+        <div className={styles.options}>
+          {round.answers.map((opt) => (
+            <AnswerOptionCard
+              key={opt.id}
+              option={{ id: opt.id, content: opt.content, correct: opt.correct, voteCount: opt.voteCount, author: null, targetPlayer: null }}
+              selected={selectedOptionId === opt.id}
+              dimmed={submitted && selectedOptionId !== opt.id}
+              onSelect={() => handleGuessSelect(opt.id)}
+              disabled={submitted || loading}
+            />
+          ))}
+        </div>
+
+        {renderSubmitBar(null)}
+      </>
+    );
   }
 
-  function renderSubmitBar(actionButton: React.ReactNode) {
+  function renderSubmitBar(actionButton: React.ReactNode, waitingLabel?: string) {
     return (
       <div className={styles.bottomBar}>
         <div className={styles.answeredInfo}>
           <PersonIcon />
-          <span>{answeredCount} z {totalPlayers} graczy odpowiedziało</span>
+          <span>{answeredCount} z {answeredTotal} graczy odpowiedziało</span>
         </div>
-        {actionButton}
+        {waitingLabel ? (
+          <span className={styles.pendingAction}>{waitingLabel}</span>
+        ) : actionButton}
       </div>
     );
   }
+
+  function renderBriefingBar() {
+    return (
+      <div className={styles.bottomBar}>
+        <div className={styles.answeredInfo}>
+          <PersonIcon />
+          <span>{briefingReadyCount} z {totalPlayers} graczy gotowych</span>
+        </div>
+        {!selfBriefingReady && needsTutorial && (
+          <span className={styles.pendingAction}>Przeczytaj instrukcję powyżej</span>
+        )}
+      </div>
+    );
+  }
+
+  const isBriefing = round?.status === 'WAITING_FOR_BRIEFING';
 
   return (
     <div className={styles.page}>
@@ -293,6 +508,7 @@ export default function QuestionPage() {
 
           <div className={styles.main}>
             {renderQuestionContent()}
+            {isBriefing && renderBriefingBar()}
           </div>
 
           <div className={styles.sidebar}>
@@ -303,8 +519,20 @@ export default function QuestionPage() {
                 <p className={styles.sideTitle}>Status rundy</p>
                 <div className={styles.statusList}>
                   <div className={styles.statusItem}>
-                    <span className={[styles.statusDot, round?.status !== 'WAITING_FOR_QUESTION' ? styles.statusDone : styles.statusActive].join(' ')} />
-                    <span className={styles.statusText}>Pytanie gotowe</span>
+                    <span className={[styles.statusDot, round?.status === 'WAITING_FOR_BRIEFING' ? styles.statusActive : round ? styles.statusDone : styles.statusPending].join(' ')} />
+                    <span className={[styles.statusText, round?.status === 'WAITING_FOR_BRIEFING' ? styles.statusTextActive : styles.statusTextMuted].join(' ')}>
+                      Instrukcje ({briefingReadyCount}/{totalPlayers})
+                    </span>
+                  </div>
+                  <div className={styles.statusItem}>
+                    <span className={[styles.statusDot, round?.status !== 'WAITING_FOR_BRIEFING' && round?.status !== 'WAITING_FOR_QUESTION' ? styles.statusDone : round?.status === 'WAITING_FOR_QUESTION' ? styles.statusActive : styles.statusPending].join(' ')} />
+                    <span className={styles.statusText}>
+                      {round?.status === 'WAITING_FOR_QUESTION' && isSelectedPlayer
+                        ? 'Twoja kolej — utwórz pytanie'
+                        : round?.status === 'WAITING_FOR_QUESTION'
+                          ? 'Oczekiwanie na pytanie'
+                          : 'Pytanie gotowe'}
+                    </span>
                   </div>
                   <div className={styles.statusItem}>
                     <span className={[styles.statusDot, round?.status === 'WAITING_FOR_ANSWERS' ? styles.statusActive : round?.status === 'REVEALING' || round?.status === 'COMPLETED' ? styles.statusDone : styles.statusPending].join(' ')} />

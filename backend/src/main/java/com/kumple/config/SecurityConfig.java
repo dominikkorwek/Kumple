@@ -33,6 +33,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/rooms/*/leave").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/rounds/*/submit-question").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/rounds/*/submit-answer").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/rounds/*/ack-briefing").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/rounds/*/expire-time").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/rooms").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/rooms/*/settings").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/rooms/*/start").permitAll()

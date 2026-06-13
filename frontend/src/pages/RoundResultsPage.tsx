@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import WinnerCard from '../components/results/WinnerCard';
 import VoteDistribution from '../components/results/VoteDistribution';
+import PlayerAnswersBreakdown from '../components/results/PlayerAnswersBreakdown';
 import UpdatedRankings from '../components/results/UpdatedRankings';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -9,6 +10,7 @@ import { nextRound, getGameState } from '../services/api';
 import { connectRoom, disconnect } from '../services/stomp';
 import { usePlayer } from '../context/PlayerContext';
 import type { GameStateResponse } from '../types/api';
+import { isGuessRoundType } from '../constants/guessRound';
 import type { ScoreEntry, VoteCount } from '../types/game';
 import layout from '../styles/lobbyLayout.module.css';
 import styles from './RoundResultsPage.module.css';
@@ -39,7 +41,10 @@ export default function RoundResultsPage() {
       const gs = msg as GameStateResponse;
       setGameState(gs);
       if (gs.status === 'FINISHED') { navigate('/game/podium'); return; }
-      if (gs.currentRound?.status === 'WAITING_FOR_ANSWERS' || gs.currentRound?.status === 'WAITING_FOR_QUESTION') {
+      if (gs.currentRound?.status === 'WAITING_FOR_BRIEFING'
+        || gs.currentRound?.status === 'WAITING_FOR_ANSWERS'
+        || gs.currentRound?.status === 'WAITING_FOR_QUESTION'
+        || gs.currentRound?.status === 'REVEALING') {
         navigate('/game/question');
       }
     },
@@ -82,6 +87,41 @@ export default function RoundResultsPage() {
   const leader = scoreboard[0];
   const leadPct = leader ? Math.min((leader.totalScore / winCondition) * 100, 100) : 0;
 
+  const isGuessRound = round ? isGuessRoundType(round.roundType) : false;
+  const selectedNickname = round?.selectedPlayer?.nickname ?? 'gracza';
+
+  function guessSubtitle(votes: number) {
+    if (votes === 0) return 'Nikt nie zgadł poprawnej odpowiedzi';
+    if (votes === 1) return '1 gracz zgadł poprawnie';
+    if (votes >= 2 && votes <= 4) return `${votes} graczy zgadło poprawnie`;
+    return `${votes} graczy zgadło poprawnie`;
+  }
+
+  function whyText() {
+    if (!winningAnswer) {
+      if (round?.roundType === 'VOTE_PERSON' && round.status === 'COMPLETED') {
+        return 'Remis po ponownym głosowaniu — nikt nie otrzymał punktów w tej rundzie.';
+      }
+      return 'Wyniki są obliczane…';
+    }
+    if (isGuessRound) {
+      return `„${winningAnswer.content}" to prawdziwa odpowiedź gracza ${selectedNickname}.`;
+    }
+    if (round?.roundType === 'VOTE_PERSON') {
+      return `Większość graczy wskazała „${winningAnswer.content}".`;
+    }
+    if (round?.roundType === 'BEST_ANSWER') {
+      return `Gracze wybrali „${winningAnswer.content}" jako najlepszą odpowiedź.`;
+    }
+    return `Większość graczy zagłosowała na „${winningAnswer.content}".`;
+  }
+
+  const whyTitle = isGuessRound ? 'Poprawna odpowiedź' : 'Dlaczego ta odpowiedź wygrała';
+  const winnerHeader = isGuessRound ? 'Poprawna odpowiedź' : 'Zwycięska odpowiedź';
+  const winnerSubtitle = winningAnswer && isGuessRound
+    ? guessSubtitle(winningAnswer.voteCount)
+    : undefined;
+
   return (
     <div className={layout.page}>
       <div className={layout.columns}>
@@ -95,7 +135,12 @@ export default function RoundResultsPage() {
           </div>
 
           {winningAnswer ? (
-            <WinnerCard winningAnswerText={winningAnswer.content} voteCount={winningAnswer.voteCount} />
+            <WinnerCard
+              winningAnswerText={winningAnswer.content}
+              voteCount={isGuessRound ? undefined : winningAnswer.voteCount}
+              headerLabel={winnerHeader}
+              subtitle={winnerSubtitle}
+            />
           ) : round?.roundType === 'VOTE_PERSON' && round.status === 'COMPLETED' ? (
             <WinnerCard winningAnswerText="Remis — brak punktów" voteCount={0} />
           ) : (
@@ -103,17 +148,15 @@ export default function RoundResultsPage() {
           )}
 
           <div className={styles.whySection}>
-            <p className={styles.whyTitle}>Dlaczego ta odpowiedź wygrała</p>
+            <p className={styles.whyTitle}>{whyTitle}</p>
             <div className={styles.whyBox}>
-              <p className={styles.whyText}>
-                {winningAnswer
-                  ? `Większość graczy zagłosowała na „${winningAnswer.content}" jako poprawną odpowiedź.`
-                  : round?.roundType === 'VOTE_PERSON' && round.status === 'COMPLETED'
-                    ? 'Remis po ponownym głosowaniu — nikt nie otrzymał punktów w tej rundzie.'
-                    : 'Wyniki są obliczane…'}
-              </p>
+              <p className={styles.whyText}>{whyText()}</p>
             </div>
           </div>
+
+          {(round?.playerAnswers?.length ?? 0) > 0 && (
+            <PlayerAnswersBreakdown entries={round!.playerAnswers} />
+          )}
 
           {isHost && (
             <Button onClick={handleNextRound} disabled={nextLoading}>

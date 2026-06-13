@@ -7,6 +7,21 @@ ALTER TABLE players ALTER COLUMN avatar_animal SET NOT NULL;
 ALTER TABLE players ALTER COLUMN avatar_color SET NOT NULL;
 
 ALTER TABLE rounds ADD COLUMN IF NOT EXISTS tiebreak_revote boolean NOT NULL DEFAULT false;
+ALTER TABLE rounds ADD COLUMN IF NOT EXISTS answer_phase_started_at timestamptz;
+
+ALTER TABLE player_answers ADD COLUMN IF NOT EXISTS voted_answer_id bigint REFERENCES answers(id);
+
+-- Allow WAITING_FOR_BRIEFING round status (briefing phase before question/answers)
+ALTER TABLE rounds DROP CONSTRAINT IF EXISTS rounds_status_check;
+ALTER TABLE rounds ADD CONSTRAINT rounds_status_check CHECK (
+  status IN (
+    'WAITING_FOR_BRIEFING',
+    'WAITING_FOR_QUESTION',
+    'WAITING_FOR_ANSWERS',
+    'REVEALING',
+    'COMPLETED'
+  )
+);
 
 INSERT INTO question_categories (name)
 VALUES ('Jedzenie'), ('Hobby'), ('Charakter'), ('Impreza'), ('Grupa')

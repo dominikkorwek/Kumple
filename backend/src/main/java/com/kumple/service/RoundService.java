@@ -1,6 +1,8 @@
 package com.kumple.service;
 
 import com.kumple.dto.AnswerOptionRequest;
+import com.kumple.dto.PlayerAnswerResponse;
+import com.kumple.dto.PlayerResponse;
 import com.kumple.dto.RoundResponse;
 import com.kumple.dto.SubmitAnswerRequest;
 import com.kumple.dto.SubmitQuestionRequest;
@@ -17,8 +19,10 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class RoundService {
@@ -30,6 +34,7 @@ public class RoundService {
     private final GameSessionRepository gameSessionRepository;
     private final QuestionService questionService;
     private final ScoreService scoreService;
+    private final RoundBriefingAckRepository briefingAckRepository;
 
     public RoundService(
             RoundRepository roundRepository,
@@ -38,7 +43,8 @@ public class RoundService {
             PlayerRepository playerRepository,
             GameSessionRepository gameSessionRepository,
             QuestionService questionService,
-            ScoreService scoreService
+            ScoreService scoreService,
+            RoundBriefingAckRepository briefingAckRepository
     ) {
         this.roundRepository = roundRepository;
         this.answerRepository = answerRepository;
@@ -47,6 +53,7 @@ public class RoundService {
         this.gameSessionRepository = gameSessionRepository;
         this.questionService = questionService;
         this.scoreService = scoreService;
+        this.briefingAckRepository = briefingAckRepository;
     }
 
     @Transactional
@@ -55,18 +62,14 @@ public class RoundService {
         RoundType roundType = chooseRoundType(session, roundNumber);
         Player selectedPlayer = roundType == RoundType.VOTE_PERSON ? null : pickPlayer(session, roundNumber);
         Question question = null;
-        RoundStatus status = RoundStatus.WAITING_FOR_ANSWERS;
 
         if (roundType == RoundType.GUESS_PLAYER_ANSWER || roundType == RoundType.REUSE_QUESTION) {
             question = questionService.getRandomQuestion(session, RoundType.GUESS_PLAYER_ANSWER);
-            status = RoundStatus.WAITING_FOR_QUESTION;
         } else if (roundType == RoundType.VOTE_PERSON || roundType == RoundType.BEST_ANSWER) {
             question = questionService.getRandomQuestion(session, roundType);
-        } else if (roundType == RoundType.PLAYER_CREATES_QUESTION) {
-            status = RoundStatus.WAITING_FOR_QUESTION;
         }
 
-        Round round = roundRepository.save(new Round(session, roundType, roundNumber, selectedPlayer, question, status));
+        Round round = roundRepository.save(new Round(session, roundType, roundNumber, selectedPlayer, question, RoundStatus.WAITING_FOR_BRIEFING));
 
         if (roundType == RoundType.VOTE_PERSON) {
             createPlayerAnswers(round);
@@ -80,8 +83,53 @@ public class RoundService {
     }
 
     @Transactional
+    public RoundResponse ackBriefing(Long roundId, String playerId) {
+        Round round = getRound(roundId);
+        if (round.getStatus() != RoundStatus.WAITING_FOR_BRIEFING) {
+            throw new IllegalStateException("Ta runda nie oczekuje teraz na potwierdzenie instrukcji");
+        }
+        Player player = playerRepository.findByPlayerId(playerId)
+                .orElseThrow(() -> new IllegalArgumentException("Gracz nie istnieje"));
+        if (!briefingAckRepository.existsByRoundIdAndPlayerPlayerId(roundId, playerId)) {
+            briefingAckRepository.save(new RoundBriefingAck(round, player));
+        }
+        if (hasAllBriefingAcks(round)) {
+            round.setStatus(statusAfterBriefing(round));
+            if (round.getStatus() == RoundStatus.WAITING_FOR_ANSWERS) {
+                beginAnswerPhase(round);
+            }
+        }
+        return toRoundResponse(roundRepository.save(round));
+    }
+
+    @Transactional
+    public boolean expireRoundIfTimedOut(Long roundId) {
+        Round round = getRound(roundId);
+        if (round.getAnswerPhaseStartedAt() == null) {
+            return false;
+        }
+        if (round.getStatus() != RoundStatus.WAITING_FOR_ANSWERS && round.getStatus() != RoundStatus.REVEALING) {
+            return false;
+        }
+
+        Instant deadline = round.getAnswerPhaseStartedAt()
+                .plusSeconds(round.getGameSession().getTimePerAnswer());
+        if (Instant.now().isBefore(deadline)) {
+            return false;
+        }
+
+        forceCompleteDueToTimeout(round);
+        roundRepository.save(round);
+        gameSessionRepository.save(round.getGameSession());
+        return true;
+    }
+
+    @Transactional
     public RoundResponse submitQuestion(Long roundId, SubmitQuestionRequest request) {
         Round round = getRound(roundId);
+        if (round.getStatus() == RoundStatus.WAITING_FOR_BRIEFING) {
+            throw new IllegalStateException("Najpierw wszyscy gracze muszą potwierdzić instrukcje");
+        }
         if (round.getStatus() != RoundStatus.WAITING_FOR_QUESTION) {
             throw new IllegalStateException("Ta runda nie oczekuje teraz na pytanie lub warianty odpowiedzi");
         }
@@ -114,7 +162,8 @@ public class RoundService {
         }
 
         round.setStatus(RoundStatus.WAITING_FOR_ANSWERS);
-        return RoundResponse.from(roundRepository.save(round));
+        beginAnswerPhase(round);
+        return toRoundResponse(roundRepository.save(round));
     }
 
     @Transactional
@@ -122,6 +171,16 @@ public class RoundService {
         Round round = getRound(roundId);
         Player player = playerRepository.findByPlayerId(request.playerId())
                 .orElseThrow(() -> new IllegalArgumentException("Gracz nie istnieje"));
+
+        if (round.getStatus() == RoundStatus.WAITING_FOR_BRIEFING) {
+            throw new IllegalStateException("Najpierw wszyscy gracze muszą potwierdzić instrukcje");
+        }
+
+        if (round.getStatus() == RoundStatus.REVEALING
+                && round.getRoundType() == RoundType.BEST_ANSWER
+                && request.answerId() != null) {
+            return submitBestAnswerVote(round, player, request.answerId());
+        }
 
         if (request.selectedAnswerId() != null) {
             return chooseBestAnswer(round, player, request.selectedAnswerId());
@@ -157,16 +216,30 @@ public class RoundService {
 
         if (round.getRoundType() == RoundType.BEST_ANSWER && hasAllExpectedAnswers(round)) {
             round.setStatus(RoundStatus.REVEALING);
+            beginAnswerPhase(round);
+        } else if (round.getRoundType() == RoundType.BEST_ANSWER && hasAllBestAnswerVotes(round)) {
+            completeRound(round);
         } else if (round.getRoundType() != RoundType.BEST_ANSWER && hasAllExpectedAnswers(round)) {
             completeRound(round);
         }
 
-        return RoundResponse.from(roundRepository.save(round));
+        return toRoundResponse(roundRepository.save(round));
     }
 
     @Transactional(readOnly = true)
     public RoundResponse getRoundState(Long roundId) {
-        return RoundResponse.from(getRound(roundId));
+        return toRoundResponse(getRound(roundId));
+    }
+
+    public RoundResponse toRoundResponse(Round round) {
+        if (round == null) return null;
+        List<String> readyIds = briefingAckRepository.findByRoundId(round.getId()).stream()
+                .map(ack -> ack.getPlayer().getPlayerId())
+                .toList();
+        List<PlayerAnswerResponse> summaries = round.getStatus() == RoundStatus.COMPLETED
+                ? buildPlayerAnswerSummaries(round)
+                : List.of();
+        return RoundResponse.from(round, readyIds, summaries);
     }
 
     @Transactional(readOnly = true)
@@ -197,7 +270,7 @@ public class RoundService {
             scoreService.addPoint(round.getGameSession(), winner.getAuthor());
         }
         finishRound(round);
-        return RoundResponse.from(roundRepository.save(round));
+        return toRoundResponse(roundRepository.save(round));
     }
 
     private void completeRound(Round round) {
@@ -208,6 +281,13 @@ public class RoundService {
         } else if (round.getRoundType() == RoundType.VOTE_PERSON) {
             completeVotePersonRound(round);
             return;
+        } else if (round.getRoundType() == RoundType.BEST_ANSWER) {
+            int maxVotes = round.getAnswers().stream().mapToInt(Answer::getVoteCount).max().orElse(0);
+            List<Answer> winners = round.getAnswers().stream()
+                    .filter(answer -> answer.getVoteCount() == maxVotes && maxVotes > 0)
+                    .toList();
+            winners.stream().findFirst().ifPresent(round::setWinningAnswer);
+            awardPlayersWhoSelected(round, winners);
         } else {
             int maxVotes = round.getAnswers().stream().mapToInt(Answer::getVoteCount).max().orElse(0);
             List<Answer> winners = round.getAnswers().stream()
@@ -273,6 +353,7 @@ public class RoundService {
         round.setWinningAnswer(null);
         round.setTiebreakRevote(true);
         round.setStatus(RoundStatus.WAITING_FOR_ANSWERS);
+        beginAnswerPhase(round);
     }
 
     private void finishRound(Round round) {
@@ -287,12 +368,151 @@ public class RoundService {
     private void awardPlayersWhoSelected(Round round, List<Answer> winners) {
         List<Long> winnerIds = winners.stream().map(Answer::getId).toList();
         for (PlayerAnswer playerAnswer : playerAnswerRepository.findByRoundId(round.getId())) {
-            if (playerAnswer.getAnswer() != null && winnerIds.contains(playerAnswer.getAnswer().getId())) {
+            if (playerAnswer.isAwardedPoint()) {
+                continue;
+            }
+            boolean matched = false;
+            if (round.getRoundType() == RoundType.BEST_ANSWER) {
+                matched = (playerAnswer.getVotedAnswer() != null && winnerIds.contains(playerAnswer.getVotedAnswer().getId()))
+                        || (playerAnswer.getAnswer() != null && winnerIds.contains(playerAnswer.getAnswer().getId()));
+            } else if (playerAnswer.getAnswer() != null) {
+                matched = winnerIds.contains(playerAnswer.getAnswer().getId());
+            }
+            if (matched) {
                 playerAnswer.setAwardedPoint(true);
                 playerAnswerRepository.save(playerAnswer);
                 scoreService.addPoint(round.getGameSession(), playerAnswer.getPlayer());
             }
         }
+    }
+
+    private boolean hasAllBestAnswerVotes(Round round) {
+        List<PlayerAnswer> submissions = playerAnswerRepository.findByRoundId(round.getId());
+        if (submissions.isEmpty()) {
+            return false;
+        }
+        long votesCast = submissions.stream().filter(pa -> pa.getVotedAnswer() != null).count();
+        return votesCast >= submissions.size();
+    }
+
+    private RoundResponse submitBestAnswerVote(Round round, Player player, Long answerId) {
+        if (round.getRoundType() != RoundType.BEST_ANSWER || round.getStatus() != RoundStatus.REVEALING) {
+            throw new IllegalStateException("Głosowanie na najlepszą odpowiedź nie jest teraz aktywne");
+        }
+
+        PlayerAnswer submission = playerAnswerRepository.findByRoundIdAndPlayerPlayerId(round.getId(), player.getPlayerId())
+                .orElseThrow(() -> new IllegalArgumentException("Najpierw musisz przesłać swoją odpowiedź"));
+        if (submission.getVotedAnswer() != null) {
+            throw new IllegalArgumentException("Ten gracz już zagłosował w tej rundzie");
+        }
+
+        Answer voted = answerRepository.findById(answerId)
+                .orElseThrow(() -> new IllegalArgumentException("Odpowiedź nie istnieje"));
+        if (!Objects.equals(voted.getRound().getId(), round.getId())) {
+            throw new IllegalArgumentException("Odpowiedź nie należy do tej rundy");
+        }
+        if (voted.getAuthor() != null && voted.getAuthor().getPlayerId().equals(player.getPlayerId())) {
+            throw new IllegalArgumentException("Nie możesz głosować na własną odpowiedź");
+        }
+
+        voted.incrementVoteCount();
+        answerRepository.save(voted);
+        submission.setVotedAnswer(voted);
+        playerAnswerRepository.save(submission);
+
+        if (hasAllBestAnswerVotes(round)) {
+            completeRound(round);
+        }
+
+        return toRoundResponse(roundRepository.save(round));
+    }
+
+    private void beginAnswerPhase(Round round) {
+        round.setAnswerPhaseStartedAt(Instant.now());
+    }
+
+    private void forceCompleteDueToTimeout(Round round) {
+        if (round.getStatus() == RoundStatus.WAITING_FOR_ANSWERS) {
+            if (round.getRoundType() == RoundType.BEST_ANSWER) {
+                long submitted = playerAnswerRepository.findByRoundId(round.getId()).size();
+                if (submitted > 0) {
+                    round.setStatus(RoundStatus.REVEALING);
+                    beginAnswerPhase(round);
+                    return;
+                }
+            }
+            completeRound(round);
+            return;
+        }
+
+        if (round.getStatus() == RoundStatus.REVEALING && round.getRoundType() == RoundType.BEST_ANSWER) {
+            completeRound(round);
+        }
+    }
+
+    private List<PlayerAnswerResponse> buildPlayerAnswerSummaries(Round round) {
+        Map<String, PlayerAnswer> byPlayerId = playerAnswerRepository.findByRoundId(round.getId()).stream()
+                .collect(Collectors.toMap(pa -> pa.getPlayer().getPlayerId(), pa -> pa));
+
+        return round.getGameSession().getRoom().getPlayers().stream()
+                .filter(player -> shouldShowInSummary(round, player, byPlayerId))
+                .sorted(Comparator.comparing(Player::getNickname, String.CASE_INSENSITIVE_ORDER))
+                .map(player -> {
+                    PlayerAnswer playerAnswer = byPlayerId.get(player.getPlayerId());
+                    if (playerAnswer == null) {
+                        return new PlayerAnswerResponse(
+                                PlayerResponse.from(player),
+                                null,
+                                false,
+                                true
+                        );
+                    }
+                    return new PlayerAnswerResponse(
+                            PlayerResponse.from(player),
+                            resolveAnswerText(playerAnswer, round),
+                            playerAnswer.isAwardedPoint(),
+                            false
+                    );
+                })
+                .toList();
+    }
+
+    private boolean shouldShowInSummary(Round round, Player player, Map<String, PlayerAnswer> answersByPlayerId) {
+        if (round.getRoundType() == RoundType.BEST_ANSWER) {
+            return answersByPlayerId.containsKey(player.getPlayerId()) || shouldAnswer(round, player);
+        }
+        return shouldAnswer(round, player);
+    }
+
+    private String resolveAnswerText(PlayerAnswer playerAnswer, Round round) {
+        if (round.getRoundType() == RoundType.BEST_ANSWER) {
+            if (playerAnswer.getFreeText() != null && !playerAnswer.getFreeText().isBlank()) {
+                return playerAnswer.getFreeText().trim();
+            }
+            if (playerAnswer.getAnswer() != null) {
+                return playerAnswer.getAnswer().getContent();
+            }
+        }
+        if (playerAnswer.getAnswer() != null) {
+            return playerAnswer.getAnswer().getContent();
+        }
+        if (playerAnswer.getFreeText() != null && !playerAnswer.getFreeText().isBlank()) {
+            return playerAnswer.getFreeText().trim();
+        }
+        return null;
+    }
+
+    private boolean hasAllBriefingAcks(Round round) {
+        long expected = round.getGameSession().getRoom().getPlayers().size();
+        long actual = briefingAckRepository.findByRoundId(round.getId()).size();
+        return expected > 0 && actual >= expected;
+    }
+
+    private RoundStatus statusAfterBriefing(Round round) {
+        return switch (round.getRoundType()) {
+            case GUESS_PLAYER_ANSWER, REUSE_QUESTION, PLAYER_CREATES_QUESTION -> RoundStatus.WAITING_FOR_QUESTION;
+            case VOTE_PERSON, BEST_ANSWER -> RoundStatus.WAITING_FOR_ANSWERS;
+        };
     }
 
     private boolean hasAllExpectedAnswers(Round round) {

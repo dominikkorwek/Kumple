@@ -58,7 +58,11 @@ export default function FreeTextAnswer({
         {otherAnswers.map((ans) => (
           <button
             key={ans.id}
-            className={[styles.voteCard, selectedAnswerId === ans.id ? styles.voteCardSelected : ''].filter(Boolean).join(' ')}
+            className={[
+              styles.voteCard,
+              selectedAnswerId === ans.id ? styles.voteCardSelected : '',
+              submitted && selectedAnswerId !== ans.id ? styles.voteCardDimmed : '',
+            ].filter(Boolean).join(' ')}
             onClick={() => onSelectAnswer(ans.id)}
             disabled={submitted || loading}
           >

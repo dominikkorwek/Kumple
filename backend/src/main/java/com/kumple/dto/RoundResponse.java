@@ -15,9 +15,19 @@ public record RoundResponse(
         PlayerResponse selectedPlayer,
         AnswerResponse winningAnswer,
         List<AnswerResponse> answers,
-        boolean tiebreakRevote
+        boolean tiebreakRevote,
+        List<String> briefingReadyPlayerIds,
+        List<PlayerAnswerResponse> playerAnswers
 ) {
     public static RoundResponse from(Round round) {
+        return from(round, List.of(), List.of());
+    }
+
+    public static RoundResponse from(Round round, List<String> briefingReadyPlayerIds) {
+        return from(round, briefingReadyPlayerIds, List.of());
+    }
+
+    public static RoundResponse from(Round round, List<String> briefingReadyPlayerIds, List<PlayerAnswerResponse> playerAnswers) {
         if (round == null) return null;
         return new RoundResponse(
                 round.getId(),
@@ -28,7 +38,9 @@ public record RoundResponse(
                 round.getSelectedPlayer() != null ? PlayerResponse.from(round.getSelectedPlayer()) : null,
                 round.getWinningAnswer() != null ? AnswerResponse.from(round.getWinningAnswer()) : null,
                 round.getAnswers().stream().map(AnswerResponse::from).toList(),
-                round.isTiebreakRevote()
+                round.isTiebreakRevote(),
+                briefingReadyPlayerIds != null ? briefingReadyPlayerIds : List.of(),
+                playerAnswers != null ? playerAnswers : List.of()
         );
     }
 }

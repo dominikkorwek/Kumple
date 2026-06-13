@@ -2,6 +2,9 @@ package com.kumple.service;
 
 import com.kumple.dto.GameSettingsRequest;
 import com.kumple.dto.GameStateResponse;
+import com.kumple.dto.RoomResponse;
+import com.kumple.dto.RoundResponse;
+import com.kumple.dto.ScoreResponse;
 import com.kumple.model.GameSession;
 import com.kumple.model.QuestionCategory;
 import com.kumple.model.Room;
@@ -104,9 +107,14 @@ public class GameService {
         return toState(session);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public GameStateResponse getState(String roomCode) {
-        return toState(getSession(roomCode));
+        GameSession session = getSession(roomCode);
+        if (session.getCurrentRound() != null) {
+            roundService.expireRoundIfTimedOut(session.getCurrentRound().getId());
+            session = getSession(roomCode);
+        }
+        return toState(session);
     }
 
     @Transactional(readOnly = true)
@@ -129,6 +137,17 @@ public class GameService {
     }
 
     private GameStateResponse toState(GameSession session) {
-        return GameStateResponse.from(session, scoreService.getRanking(session));
+        RoundResponse currentRound = roundService.toRoundResponse(session.getCurrentRound());
+        return new GameStateResponse(
+                session.getId(),
+                session.getStatus(),
+                RoomResponse.from(session.getRoom()),
+                session.getPointLimit(),
+                session.getTimePerAnswer(),
+                currentRound,
+                scoreService.getRanking(session),
+                session.getExcludedCategories().stream().map(QuestionCategory::getId).toList(),
+                List.copyOf(session.getExcludedRoundTypes())
+        );
     }
 }

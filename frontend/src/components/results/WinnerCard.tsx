@@ -11,23 +11,25 @@ function TrophyIcon() {
 interface WinnerCardProps {
   winningAnswerText: string;
   voteCount?: number;
+  headerLabel?: string;
+  subtitle?: string;
 }
 
-export default function WinnerCard({ winningAnswerText, voteCount }: WinnerCardProps) {
+export default function WinnerCard({ winningAnswerText, voteCount, headerLabel = 'Zwycięska odpowiedź', subtitle }: WinnerCardProps) {
+  const defaultSubtitle = voteCount != null && voteCount > 0
+    ? `${voteCount} ${voteCount === 1 ? 'głos' : voteCount >= 2 && voteCount <= 4 ? 'głosy' : 'głosów'} na tę odpowiedź`
+    : null;
+
   return (
     <div className={styles.card}>
       <div className={styles.header}>
         <TrophyIcon />
-        <span className={styles.headerLabel}>Zwycięska odpowiedź</span>
+        <span className={styles.headerLabel}>{headerLabel}</span>
       </div>
 
       <p className={styles.answer}>{winningAnswerText}</p>
-      {voteCount != null && voteCount > 0 && (
-        <p className={styles.subtitle}>
-          {voteCount}{' '}
-          {voteCount === 1 ? 'głos' : voteCount >= 2 && voteCount <= 4 ? 'głosy' : 'głosów'}{' '}
-          na tę odpowiedź
-        </p>
+      {(subtitle ?? defaultSubtitle) && (
+        <p className={styles.subtitle}>{subtitle ?? defaultSubtitle}</p>
       )}
     </div>
   );

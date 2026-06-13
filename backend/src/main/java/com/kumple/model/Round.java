@@ -52,6 +52,8 @@ public class Round {
     @Column(nullable = false)
     private Instant createdAt = Instant.now();
 
+    private Instant answerPhaseStartedAt;
+
     private Instant completedAt;
 
     @Column(nullable = false)
@@ -82,6 +84,8 @@ public class Round {
     public List<Answer> getAnswers() { return answers; }
     public List<PlayerAnswer> getPlayerAnswers() { return playerAnswers; }
     public Instant getCreatedAt() { return createdAt; }
+    public Instant getAnswerPhaseStartedAt() { return answerPhaseStartedAt; }
+    public void setAnswerPhaseStartedAt(Instant answerPhaseStartedAt) { this.answerPhaseStartedAt = answerPhaseStartedAt; }
     public Instant getCompletedAt() { return completedAt; }
     public void setCompletedAt(Instant completedAt) { this.completedAt = completedAt; }
     public boolean isTiebreakRevote() { return tiebreakRevote; }
