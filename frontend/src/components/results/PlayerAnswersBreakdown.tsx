@@ -34,7 +34,7 @@ export default function PlayerAnswersBreakdown({ entries }: PlayerAnswersBreakdo
               {entry.missed ? (
                 <span className={styles.missedLabel}>Brak odpowiedzi</span>
               ) : (
-                <span className={styles.answerText}>{entry.answerText ?? '—'}</span>
+                <span className={styles.answerText}>{entry.answerText ?? '-'}</span>
               )}
               {entry.correct && <span className={styles.correctBadge}>Poprawnie</span>}
             </div>

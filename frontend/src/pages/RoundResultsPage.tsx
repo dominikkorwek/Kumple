@@ -100,7 +100,7 @@ export default function RoundResultsPage() {
   function whyText() {
     if (!winningAnswer) {
       if (round?.roundType === 'VOTE_PERSON' && round.status === 'COMPLETED') {
-        return 'Remis po ponownym głosowaniu — nikt nie otrzymał punktów w tej rundzie.';
+        return 'Remis po ponownym głosowaniu, nikt nie otrzymał punktów w tej rundzie.';
       }
       return 'Wyniki są obliczane…';
     }
@@ -111,7 +111,7 @@ export default function RoundResultsPage() {
       return `Większość graczy wskazała „${winningAnswer.content}".`;
     }
     if (round?.roundType === 'BEST_ANSWER') {
-      return `Autor odpowiedzi „${winningAnswer.content}" zdobywa punkt — wybrany gracz uznał ją za najlepszą.`;
+      return `Autor odpowiedzi „${winningAnswer.content}" zdobywa punkt, wybrany gracz uznał ją za najlepszą.`;
     }
     return `Większość graczy zagłosowała na „${winningAnswer.content}".`;
   }
@@ -129,7 +129,7 @@ export default function RoundResultsPage() {
         <div className={layout.left}>
           <div className={styles.pageHeader}>
             <span className={styles.roundBadge}>
-              Runda {round?.roundNumber ?? '—'} zakończona
+              Runda {round?.roundNumber ?? '-'} zakończona
             </span>
             <h1 className={styles.title}>Wyniki rundy</h1>
           </div>
@@ -142,7 +142,7 @@ export default function RoundResultsPage() {
               subtitle={winnerSubtitle}
             />
           ) : round?.roundType === 'VOTE_PERSON' && round.status === 'COMPLETED' ? (
-            <WinnerCard winningAnswerText="Remis — brak punktów" voteCount={0} />
+            <WinnerCard winningAnswerText="Remis, brak punktów" voteCount={0} />
           ) : (
             <WinnerCard winningAnswerText="Oczekiwanie na wynik…" />
           )}

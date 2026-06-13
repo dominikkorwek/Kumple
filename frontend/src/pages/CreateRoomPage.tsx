@@ -109,7 +109,7 @@ export default function CreateRoomPage() {
                 step={POINT_STEP}
               />
               <Input
-                label={`Maksymalna liczba graczy (${MIN_PLAYERS}–${MAX_PLAYERS})`}
+                label={`Maksymalna liczba graczy (${MIN_PLAYERS}-${MAX_PLAYERS})`}
                 type="number"
                 value={maxPlayers}
                 onChange={(e) => setMaxPlayers(Number(e.target.value))}
@@ -162,7 +162,7 @@ export default function CreateRoomPage() {
               </div>
 
               <Button onClick={handleContinue} fullWidth>
-                Dalej: wybierz awatar
+                Wybierz awatar
               </Button>
             </div>
           </Card>

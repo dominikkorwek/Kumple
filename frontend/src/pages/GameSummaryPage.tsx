@@ -160,12 +160,12 @@ export default function GameSummaryPage() {
               <div className={styles.breakdown}>
                 <div className={styles.breakdownRow}>
                   <span className={styles.breakdownKey}>Zwycięzca:</span>
-                  <span className={styles.breakdownVal}>{winner?.nickname ?? '—'}</span>
+                  <span className={styles.breakdownVal}>{winner?.nickname ?? '-'}</span>
                 </div>
                 <div className={styles.breakdownRow}>
                   <span className={styles.breakdownKey}>Wynik zwycięzcy:</span>
                   <span className={`${styles.breakdownVal} ${styles.breakdownAccent}`}>
-                    {winner?.totalScore ?? '—'}
+                    {winner?.totalScore ?? '-'}
                   </span>
                 </div>
                 <div className={styles.breakdownRow}>

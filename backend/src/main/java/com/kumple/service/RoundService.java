@@ -1,5 +1,7 @@
 package com.kumple.service;
 
+import com.kumple.dto.ClassicOptionResponse;
+import com.kumple.dto.ClassicSetupResponse;
 import com.kumple.dto.AnswerOptionRequest;
 import com.kumple.dto.PlayerAnswerResponse;
 import com.kumple.dto.PlayerResponse;
@@ -63,15 +65,20 @@ public class RoundService {
         Player selectedPlayer = roundType == RoundType.VOTE_PERSON ? null : pickPlayer(session, roundNumber);
         Question question = null;
 
-        if (roundType == RoundType.GUESS_PLAYER_ANSWER || roundType == RoundType.REUSE_QUESTION) {
+        if (roundType == RoundType.GUESS_PLAYER_ANSWER) {
             question = questionService.getRandomQuestion(session, RoundType.GUESS_PLAYER_ANSWER);
+        } else if (roundType == RoundType.REUSE_QUESTION) {
+            question = questionService.getRandomQuestion(session, RoundType.REUSE_QUESTION);
         } else if (roundType == RoundType.VOTE_PERSON || roundType == RoundType.BEST_ANSWER) {
             question = questionService.getRandomQuestion(session, roundType);
         }
 
         Round round = roundRepository.save(new Round(session, roundType, roundNumber, selectedPlayer, question, RoundStatus.WAITING_FOR_BRIEFING));
 
-        if (roundType == RoundType.VOTE_PERSON) {
+        if (roundType == RoundType.REUSE_QUESTION) {
+            createClassicAnswers(round, question);
+            round = roundRepository.save(round);
+        } else if (roundType == RoundType.VOTE_PERSON) {
             createPlayerAnswers(round);
             round = roundRepository.save(round);
         }
@@ -132,6 +139,10 @@ public class RoundService {
         }
         if (round.getStatus() != RoundStatus.WAITING_FOR_QUESTION) {
             throw new IllegalStateException("Ta runda nie oczekuje teraz na pytanie lub warianty odpowiedzi");
+        }
+
+        if (round.getRoundType() == RoundType.REUSE_QUESTION) {
+            return submitClassicCorrectAnswer(round, request);
         }
 
         if (hasText(request.questionContent())) {
@@ -238,6 +249,28 @@ public class RoundService {
                 ? buildPlayerAnswerSummaries(round)
                 : List.of();
         return RoundResponse.from(round, readyIds, summaries);
+    }
+
+    @Transactional(readOnly = true)
+    public ClassicSetupResponse getClassicSetup(Long roundId, String playerId) {
+        Round round = getRound(roundId);
+        if (round.getRoundType() != RoundType.REUSE_QUESTION) {
+            throw new IllegalStateException("To nie jest runda klasycznego pytania");
+        }
+        if (round.getStatus() != RoundStatus.WAITING_FOR_QUESTION) {
+            throw new IllegalStateException("Ta runda nie oczekuje teraz na wybór poprawnej odpowiedzi");
+        }
+        if (round.getSelectedPlayer() == null || !round.getSelectedPlayer().getPlayerId().equals(playerId)) {
+            throw new IllegalArgumentException("Tylko wskazany gracz może przygotować to pytanie");
+        }
+        List<ClassicOptionResponse> options = round.getAnswers().stream()
+                .map(answer -> new ClassicOptionResponse(answer.getId(), answer.getContent()))
+                .toList();
+        if (options.size() < 4) {
+            throw new IllegalStateException("Brak opcji odpowiedzi dla tego pytania");
+        }
+        String questionContent = round.getQuestion() != null ? round.getQuestion().getContent() : "";
+        return new ClassicSetupResponse(questionContent, options);
     }
 
     @Transactional(readOnly = true)
@@ -497,6 +530,39 @@ public class RoundService {
             Answer answer = new Answer(round, player.getNickname(), null, player, false);
             round.getAnswers().add(answerRepository.save(answer));
         }
+    }
+
+    private void createClassicAnswers(Round round, Question question) {
+        for (QuestionOption option : questionService.getOptions(question)) {
+            Answer answer = new Answer(round, option.getContent(), null, null, false);
+            round.getAnswers().add(answerRepository.save(answer));
+        }
+    }
+
+    private RoundResponse submitClassicCorrectAnswer(Round round, SubmitQuestionRequest request) {
+        if (request.playerId() == null || request.playerId().isBlank()) {
+            throw new IllegalArgumentException("Brak identyfikatora gracza");
+        }
+        if (request.correctAnswerId() == null) {
+            throw new IllegalArgumentException("Wybierz poprawną odpowiedź");
+        }
+        Player player = playerRepository.findByPlayerId(request.playerId())
+                .orElseThrow(() -> new IllegalArgumentException("Gracz nie istnieje"));
+        if (round.getSelectedPlayer() == null || !round.getSelectedPlayer().getPlayerId().equals(player.getPlayerId())) {
+            throw new IllegalArgumentException("Tylko wskazany gracz może wybrać poprawną odpowiedź");
+        }
+
+        Answer correct = answerRepository.findById(request.correctAnswerId())
+                .orElseThrow(() -> new IllegalArgumentException("Odpowiedź nie istnieje"));
+        if (!Objects.equals(correct.getRound().getId(), round.getId())) {
+            throw new IllegalArgumentException("Odpowiedź nie należy do tej rundy");
+        }
+
+        correct.setCorrect(true);
+        answerRepository.save(correct);
+        round.setStatus(RoundStatus.WAITING_FOR_ANSWERS);
+        beginAnswerPhase(round);
+        return toRoundResponse(roundRepository.save(round));
     }
 
     private RoundType chooseRoundType(GameSession session, int roundNumber) {

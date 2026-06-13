@@ -29,15 +29,19 @@ public record RoundResponse(
 
     public static RoundResponse from(Round round, List<String> briefingReadyPlayerIds, List<PlayerAnswerResponse> playerAnswers) {
         if (round == null) return null;
+        RoundStatus status = round.getStatus();
+        boolean hideAnswers = status == RoundStatus.WAITING_FOR_QUESTION;
         return new RoundResponse(
                 round.getId(),
                 round.getRoundNumber(),
                 round.getRoundType(),
-                round.getStatus(),
+                status,
                 QuestionResponse.from(round.getQuestion()),
                 round.getSelectedPlayer() != null ? PlayerResponse.from(round.getSelectedPlayer()) : null,
-                round.getWinningAnswer() != null ? AnswerResponse.from(round.getWinningAnswer()) : null,
-                round.getAnswers().stream().map(AnswerResponse::from).toList(),
+                round.getWinningAnswer() != null ? AnswerResponse.from(round.getWinningAnswer(), status) : null,
+                hideAnswers
+                        ? List.of()
+                        : round.getAnswers().stream().map(a -> AnswerResponse.from(a, status)).toList(),
                 round.isTiebreakRevote(),
                 briefingReadyPlayerIds != null ? briefingReadyPlayerIds : List.of(),
                 playerAnswers != null ? playerAnswers : List.of()

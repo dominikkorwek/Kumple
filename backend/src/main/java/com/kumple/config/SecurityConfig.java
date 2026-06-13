@@ -29,6 +29,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/rooms/*").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/rooms/*/game").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/rounds/*").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/rounds/*/classic-setup").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/rooms/*/join").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/rooms/*/leave").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/rounds/*/submit-question").permitAll()

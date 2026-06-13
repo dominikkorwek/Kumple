@@ -6,6 +6,7 @@ import type {
   GameSettingsRequest,
   SubmitAnswerRequest,
   SubmitQuestionRequest,
+  ClassicSetupResponse,
 } from '../types/api';
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
@@ -79,6 +80,10 @@ export function submitAnswer(roundId: number, payload: SubmitAnswerRequest): Pro
     method: 'POST',
     body: JSON.stringify(payload),
   });
+}
+
+export function getClassicSetup(roundId: number, playerId: string): Promise<ClassicSetupResponse> {
+  return request(`/api/rounds/${roundId}/classic-setup?playerId=${encodeURIComponent(playerId)}`);
 }
 
 export function submitQuestion(roundId: number, payload: SubmitQuestionRequest): Promise<GameStateResponse> {

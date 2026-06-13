@@ -108,7 +108,7 @@ public class RoomService {
         Room room = roomRepository.findByCodeIgnoreCase(code)
                 .orElseThrow(() -> new IllegalArgumentException("Pokój o kodzie " + code + " nie istnieje"));
 
-        // when OAuth2 is disabled (anonymous mode) both sides are null — allow all host actions
+        // when OAuth2 is disabled (anonymous mode) both sides are null - allow all host actions
         if (hostAuthSubject == null && room.getHostAuthSubject() == null) return;
 
         if (hostAuthSubject == null || !hostAuthSubject.equals(room.getHostAuthSubject())) {

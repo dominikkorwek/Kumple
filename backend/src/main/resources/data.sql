@@ -66,3 +66,37 @@ AND NOT EXISTS (SELECT 1 FROM questions WHERE content = 'Jaką supermoc ta osoba
 INSERT INTO questions (content, round_type, category_id, predefined)
 SELECT 'Jakie pytanie najlepiej pasuje do tej grupy?', 'PLAYER_CREATES_QUESTION', id, true FROM question_categories WHERE name = 'Grupa'
 AND NOT EXISTS (SELECT 1 FROM questions WHERE content = 'Jakie pytanie najlepiej pasuje do tej grupy?' AND predefined = true);
+
+INSERT INTO questions (content, round_type, category_id, predefined)
+SELECT 'Jaki byłby idealny wieczór tej osoby?', 'REUSE_QUESTION', id, true FROM question_categories WHERE name = 'Impreza'
+AND NOT EXISTS (SELECT 1 FROM questions WHERE content = 'Jaki byłby idealny wieczór tej osoby?' AND predefined = true);
+
+INSERT INTO questions (content, round_type, category_id, predefined)
+SELECT 'Co ta osoba zrobiłaby z niespodziewaną wolną sobotą?', 'REUSE_QUESTION', id, true FROM question_categories WHERE name = 'Hobby'
+AND NOT EXISTS (SELECT 1 FROM questions WHERE content = 'Co ta osoba zrobiłaby z niespodziewaną wolną sobotą?' AND predefined = true);
+
+INSERT INTO questions (content, round_type, category_id, predefined)
+SELECT 'Który napój najlepiej pasuje do tej osoby?', 'REUSE_QUESTION', id, true FROM question_categories WHERE name = 'Jedzenie'
+AND NOT EXISTS (SELECT 1 FROM questions WHERE content = 'Który napój najlepiej pasuje do tej osoby?' AND predefined = true);
+
+INSERT INTO question_options (question_id, content, display_order)
+SELECT q.id, opt.content, opt.display_order
+FROM questions q
+JOIN (VALUES
+  ('Jaki byłby idealny wieczór tej osoby?', 'Film i pizza na kanapie', 0),
+  ('Jaki byłby idealny wieczór tej osoby?', 'Spacer i rozmowa do późna', 1),
+  ('Jaki byłby idealny wieczór tej osoby?', 'Impreza z muzyką na maxa', 2),
+  ('Jaki byłby idealny wieczór tej osoby?', 'Książka, koc i herbata', 3),
+  ('Co ta osoba zrobiłaby z niespodziewaną wolną sobotą?', 'Wyruszy w nieplanowaną podróż', 0),
+  ('Co ta osoba zrobiłaby z niespodziewaną wolną sobotą?', 'Zorganizuje domowe sprzątanie', 1),
+  ('Co ta osoba zrobiłaby z niespodziewaną wolną sobotą?', 'Ogląda seriale bez przerwy', 2),
+  ('Co ta osoba zrobiłaby z niespodziewaną wolną sobotą?', 'Spotka się ze znajomymi', 3),
+  ('Który napój najlepiej pasuje do tej osoby?', 'Kawa o poranku', 0),
+  ('Który napój najlepiej pasuje do tej osoby?', 'Herbata z cytryną', 1),
+  ('Który napój najlepiej pasuje do tej osoby?', 'Woda z lodem', 2),
+  ('Który napój najlepiej pasuje do tej osoby?', 'Sok owocowy', 3)
+) AS opt(question_content, content, display_order) ON q.content = opt.question_content
+WHERE q.round_type = 'REUSE_QUESTION' AND q.predefined = true
+AND NOT EXISTS (
+  SELECT 1 FROM question_options existing WHERE existing.question_id = q.id
+);

@@ -9,7 +9,7 @@ type FormStep = 'question' | 'answers' | 'pickCorrect';
 interface QuestionCreateFormProps {
   onSubmit: (questionContent: string, answers: string[], correctIndex: number) => void;
   loading?: boolean;
-  /** When set, the question already exists — show it read-only and skip the question input */
+  /** When set, the question already exists: show it read-only and skip the question input */
   existingQuestion?: string;
 }
 
@@ -66,7 +66,7 @@ export default function QuestionCreateForm({ onSubmit, loading, existingQuestion
           <div key={i} className={styles.answerRow}>
             <span className={styles.answerLetter}>{String.fromCharCode(65 + i)}</span>
             {showLettersOnly ? (
-              <span className={styles.answerPreview}>{ans.trim() || '—'}</span>
+              <span className={styles.answerPreview}>{ans.trim() || '-'}</span>
             ) : (
               <input
                 className={styles.answerInput}
@@ -131,7 +131,7 @@ export default function QuestionCreateForm({ onSubmit, loading, existingQuestion
             maxLength={200}
           />
           <Button onClick={goToAnswersStep} disabled={!questionText.trim()}>
-            Dalej — opcje odpowiedzi →
+            Dalej: opcje odpowiedzi →
           </Button>
         </div>
       )}
@@ -141,7 +141,7 @@ export default function QuestionCreateForm({ onSubmit, loading, existingQuestion
           <p className={styles.sectionLabel}>Opcje odpowiedzi</p>
           {renderAnswersInputs()}
           <Button onClick={goToPickCorrectStep} disabled={filledAnswers.length < 2}>
-            Dalej — wybierz poprawną →
+            Dalej: wybierz poprawną →
           </Button>
         </div>
       )}

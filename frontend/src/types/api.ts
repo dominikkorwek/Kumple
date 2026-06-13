@@ -119,9 +119,21 @@ export interface AnswerOptionRequest {
 }
 
 export interface SubmitQuestionRequest {
+  playerId?: string | null;
   questionContent: string;
   answers: AnswerOptionRequest[];
   answersArePlayers: boolean;
+  correctAnswerId?: number | null;
+}
+
+export interface ClassicOptionResponse {
+  id: number;
+  content: string;
+}
+
+export interface ClassicSetupResponse {
+  questionContent: string;
+  options: ClassicOptionResponse[];
 }
 
 export interface SubmitAnswerRequest {

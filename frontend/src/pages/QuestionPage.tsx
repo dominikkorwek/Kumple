@@ -7,6 +7,7 @@ import AnswerOptionCard from '../components/question/AnswerOptionCard';
 import Scoreboard from '../components/question/Scoreboard';
 import WaitingForQuestion from '../components/question/WaitingForQuestion';
 import QuestionCreateForm from '../components/question/QuestionCreateForm';
+import ClassicQuestionPickForm from '../components/question/ClassicQuestionPickForm';
 import VotePersonGrid from '../components/question/VotePersonGrid';
 import FreeTextAnswer from '../components/question/FreeTextAnswer';
 import RoundTypeTutorial from '../components/question/RoundTypeTutorial';
@@ -155,13 +156,16 @@ export default function QuestionPage() {
 
   const briefingReadyIds = round?.briefingReadyPlayerIds ?? [];
   const selfBriefingReady = briefingReadyIds.includes(playerId);
-  const needsTutorial = round ? !hasSeenRoundType(playerId, round.roundType) : false;
+  const gameSessionId = gameState?.id;
+  const needsTutorial = round && gameSessionId
+    ? !hasSeenRoundType(gameSessionId, playerId, round.roundType)
+    : false;
 
   const handleAckBriefing = useCallback(async (markSeen: boolean) => {
     if (!round || briefingLoading || selfBriefingReady) return;
     setBriefingLoading(true);
     try {
-      if (markSeen) markRoundTypeSeen(playerId, round.roundType);
+      if (markSeen && gameSessionId) markRoundTypeSeen(gameSessionId, playerId, round.roundType);
       const gs = await ackBriefing(round.id, playerId);
       handleMessage(gs);
     } catch {
@@ -169,7 +173,7 @@ export default function QuestionPage() {
     } finally {
       setBriefingLoading(false);
     }
-  }, [round, briefingLoading, selfBriefingReady, playerId, handleMessage]);
+  }, [round, briefingLoading, selfBriefingReady, playerId, gameSessionId, handleMessage]);
 
   useEffect(() => {
     if (!round || round.status !== 'WAITING_FOR_BRIEFING') return;
@@ -215,6 +219,26 @@ export default function QuestionPage() {
     handleSubmitAnswer(answerId, null, null);
   }
 
+  async function handleMarkClassicCorrect(correctAnswerId: number) {
+    const currentRound = gameState?.currentRound;
+    if (!currentRound || loading) return;
+    setLoading(true);
+    try {
+      const gs = await submitQuestion(currentRound.id, {
+        playerId,
+        questionContent: '',
+        answers: [],
+        answersArePlayers: false,
+        correctAnswerId,
+      });
+      handleMessage(gs);
+    } catch {
+      // retry allowed
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleCreateQuestion(questionContent: string, answers: string[], correctIndex: number) {
     const currentRound = gameState?.currentRound;
     if (!currentRound) return;
@@ -223,7 +247,12 @@ export default function QuestionPage() {
       const answerOptions = answers
         .filter((a) => a.trim())
         .map((a, i) => ({ content: a, correct: i === correctIndex, targetPlayerId: null }));
-      await submitQuestion(currentRound.id, { questionContent, answers: answerOptions, answersArePlayers: false });
+      await submitQuestion(currentRound.id, {
+        playerId,
+        questionContent,
+        answers: answerOptions,
+        answersArePlayers: false,
+      });
     } catch {
       // ignore
     } finally {
@@ -329,7 +358,7 @@ export default function QuestionPage() {
             {renderBestAnswerSubjectCard(round)}
             <h2 className={styles.questionText}>{round.question?.content ?? ''}</h2>
             {!submitted && (
-              <p className={styles.statusHint}>Wybierz najlepszą odpowiedź — kliknięcie od razu ją zatwierdza.</p>
+              <p className={styles.statusHint}>Wybierz najlepszą odpowiedź, kliknięcie od razu ją zatwierdza.</p>
             )}
             {submitted && (
               <p className={styles.waitingMessage}>{WAIT_FOR_OTHERS}</p>
@@ -410,18 +439,30 @@ export default function QuestionPage() {
 
     if (round.status === 'WAITING_FOR_QUESTION') {
       if (isSelectedPlayer) {
+        if (round.roundType === 'REUSE_QUESTION') {
+          return (
+            <ClassicQuestionPickForm
+              key={round.id}
+              roundId={round.id}
+              playerId={playerId}
+              onSubmit={handleMarkClassicCorrect}
+              loading={loading}
+            />
+          );
+        }
         const existingQ =
-          (round.roundType === 'GUESS_PLAYER_ANSWER' || round.roundType === 'REUSE_QUESTION')
+          round.roundType === 'GUESS_PLAYER_ANSWER'
             ? (round.question?.content ?? undefined)
             : undefined;
         return <QuestionCreateForm key={round.id} onSubmit={handleCreateQuestion} loading={loading} existingQuestion={existingQ} />;
       }
+      const waitingHint = round.roundType === 'REUSE_QUESTION'
+        ? `${round.selectedPlayer?.nickname ?? 'Wybrany gracz'} wybiera swoją prawdziwą odpowiedź, poczekaj chwilę.`
+        : `${round.selectedPlayer?.nickname ?? 'Wybrany gracz'} tworzy pytanie i odpowiedzi, poczekaj chwilę.`;
       return (
         <>
           <WaitingForQuestion selectedPlayerNickname={round.selectedPlayer?.nickname ?? 'Gracz'} />
-          <p className={styles.statusHint}>
-            {round.selectedPlayer?.nickname ?? 'Wybrany gracz'} tworzy pytanie i odpowiedzi — poczekaj chwilę.
-          </p>
+          <p className={styles.statusHint}>{waitingHint}</p>
         </>
       );
     }
@@ -439,7 +480,7 @@ export default function QuestionPage() {
             <h2 className={styles.questionText}>{round.question?.content ?? ''}</h2>
             {round.tiebreakRevote && (
               <p className={styles.tiebreakNotice}>
-                Remis! Głosuj ponownie — w grze zostały tylko osoby z remisem.
+                Remis! Głosuj ponownie, w grze zostały tylko osoby z remisem.
               </p>
             )}
             {!submitted && (
@@ -485,7 +526,7 @@ export default function QuestionPage() {
                 <div className={styles.playerAvatar}><PersonIcon /></div>
                 <div>
                   <p className={styles.playerName}>{round.selectedPlayer?.nickname}</p>
-                  <p className={styles.playerSubtitle}>Podałeś odpowiedzi — nie zgadujesz</p>
+                  <p className={styles.playerSubtitle}>Podałeś odpowiedzi, nie zgadujesz</p>
                 </div>
               </div>
             </div>
@@ -620,7 +661,7 @@ export default function QuestionPage() {
                     <span className={[styles.statusDot, round?.status !== 'WAITING_FOR_BRIEFING' && round?.status !== 'WAITING_FOR_QUESTION' ? styles.statusDone : round?.status === 'WAITING_FOR_QUESTION' ? styles.statusActive : styles.statusPending].join(' ')} />
                     <span className={styles.statusText}>
                       {round?.status === 'WAITING_FOR_QUESTION' && isSelectedPlayer
-                        ? 'Twoja kolej — utwórz pytanie'
+                        ? 'Twoja kolej, utwórz pytanie'
                         : round?.status === 'WAITING_FOR_QUESTION'
                           ? 'Oczekiwanie na pytanie'
                           : 'Pytanie gotowe'}

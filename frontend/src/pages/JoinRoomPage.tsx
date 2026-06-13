@@ -171,7 +171,7 @@ export default function JoinRoomPage() {
             <h1 className={styles.title}>{isHost ? 'Skonfiguruj swój profil' : 'Dołącz do gry'}</h1>
             <p className={styles.subtitle}>
               {isHost
-                ? 'Wpisz nickname i wybierz awatar — pokój zostanie utworzony po kontynuacji'
+                ? 'Wpisz nickname i wybierz awatar, pokój zostanie utworzony po kontynuacji'
                 : 'Wpisz nickname i wybierz awatar, aby dołączyć do sesji'}
             </p>
           </div>
@@ -181,7 +181,7 @@ export default function JoinRoomPage() {
           <Card padded={false}>
             <div className={styles.roomConfirm}>
               <span className={styles.roomLabel}>Kod pokoju</span>
-              <span className={styles.roomCode}>{code || '—'}</span>
+              <span className={styles.roomCode}>{code || '-'}</span>
               {isFull && !isHost && <span className={styles.fullBadge}>Pokój pełny</span>}
             </div>
           </Card>
@@ -228,7 +228,7 @@ export default function JoinRoomPage() {
                 <span>
                   {isHost
                     ? `1 / ${previewMaxPlayers} graczy`
-                    : room ? `${room.currentPlayers + 1} / ${room.maxPlayers} graczy` : '— / —'}
+                    : room ? `${room.currentPlayers + 1} / ${room.maxPlayers} graczy` : '- / -'}
                 </span>
               </div>
 
@@ -274,13 +274,13 @@ export default function JoinRoomPage() {
                   <div className={styles.settingRow}>
                     <span className={styles.settingKey}>Punkty do wygranej</span>
                     <span className={styles.settingVal}>
-                      {isHost ? pendingSettings!.pointLimit : '—'}
+                      {isHost ? pendingSettings!.pointLimit : '-'}
                     </span>
                   </div>
                   <div className={styles.settingRow}>
                     <span className={styles.settingKey}>Czas na odpowiedź</span>
                     <span className={styles.settingVal}>
-                      {isHost ? `${pendingSettings!.timePerAnswer}s` : '—'}
+                      {isHost ? `${pendingSettings!.timePerAnswer}s` : '-'}
                     </span>
                   </div>
                   <div className={styles.settingRow}>
