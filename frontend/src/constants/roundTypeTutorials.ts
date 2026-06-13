@@ -44,9 +44,10 @@ export const ROUND_TYPE_TUTORIALS: Record<RoundType, RoundTypeTutorialContent> =
   BEST_ANSWER: {
     title: ROUND_TYPE_LABELS.BEST_ANSWER,
     steps: [
-      'Najpierw każdy pisze własną odpowiedź na pytanie.',
-      'Gdy wszyscy wyślą tekst, głosujecie na najlepszą odpowiedź (nie swoją).',
-      'Autor najczęściej wybieranej odpowiedzi zdobywa punkt.',
+      'Pytanie dotyczy jednego wybranego gracza — wszyscy oprócz niego piszą odpowiedź.',
+      'Wybrany gracz czeka i nie pisze — po czasie wybiera najlepszą odpowiedź z listy.',
+      'Autor wybranej odpowiedzi zdobywa punkt.',
     ],
+    tip: 'Wybrany gracz nie pisze odpowiedzi — tylko wybiera zwycięzcę.',
   },
 };

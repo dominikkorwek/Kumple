@@ -5,6 +5,7 @@ import Input from '../components/ui/Input';
 import Card from '../components/ui/Card';
 import AvatarPicker, { AvatarDisplay, AVATAR_COLORS } from '../components/join/AvatarPicker';
 import type { AvatarConfig } from '../components/join/AvatarPicker';
+import { generateRandomProfile } from '../utils/randomProfile';
 import { getRoomByCode, joinRoom, createRoom, updateSettings, getCategories } from '../services/api';
 import { usePlayer } from '../context/PlayerContext';
 import { PENDING_SETTINGS_KEY } from './CreateRoomPage';
@@ -79,6 +80,12 @@ export default function JoinRoomPage() {
       .then(setRoom)
       .catch(() => setRoomError('Nie znaleziono pokoju'));
   }, [code, isHost]);
+
+  function handleRandomize() {
+    const { nickname: randomNick, avatar: randomAvatar } = generateRandomProfile();
+    setNickname(randomNick);
+    setAvatar(randomAvatar);
+  }
 
   async function handleJoin() {
     const trimmed = nickname.trim();
@@ -181,15 +188,23 @@ export default function JoinRoomPage() {
 
           <AvatarPicker value={avatar} onChange={setAvatar} />
 
-          <Input
-            label="Twój nickname"
-            placeholder="np. Marek"
-            value={nickname}
-            onChange={(e) => setNickname(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
-            maxLength={30}
-            autoFocus
-          />
+          <div className={styles.nicknameSection}>
+            <div className={styles.nicknameRow}>
+              <Input
+                label="Twój nickname"
+                placeholder="np. cierpliwa panda"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
+                maxLength={30}
+                autoFocus
+              />
+              <Button type="button" variant="secondary" fullWidth={false} onClick={handleRandomize} className={styles.randomBtn}>
+                Losuj
+              </Button>
+            </div>
+            <p className={styles.nicknameHint}>Możesz wpisać własny nick albo wylosować, np. „nieśmiały kot”</p>
+          </div>
 
           {apiError && <p className={styles.errorText}>{apiError}</p>}
 

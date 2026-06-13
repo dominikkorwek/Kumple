@@ -102,6 +102,21 @@
   opacity: 1;
 }
 
+.voteCardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.voteAuthor {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
 .voteText {
   font-size: 0.9rem;
   color: var(--text-primary);

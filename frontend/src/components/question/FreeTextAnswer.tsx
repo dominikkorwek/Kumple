@@ -11,6 +11,7 @@ interface FreeTextAnswerProps {
   submitted: boolean;
   currentPlayerId: string;
   loading?: boolean;
+  pickerMode?: boolean;
 }
 
 export default function FreeTextAnswer({
@@ -23,6 +24,7 @@ export default function FreeTextAnswer({
   submitted,
   currentPlayerId,
   loading,
+  pickerMode = false,
 }: FreeTextAnswerProps) {
   if (phase === 'writing') {
     return (
@@ -49,13 +51,17 @@ export default function FreeTextAnswer({
     );
   }
 
-  const otherAnswers = answers.filter((a) => a.author?.id !== currentPlayerId);
+  const pickableAnswers = pickerMode
+    ? answers.filter((a) => a.author != null)
+    : answers.filter((a) => a.author?.id !== currentPlayerId);
 
   return (
     <div className={styles.container}>
-      <p className={styles.votePrompt}>Głosuj na najlepszą odpowiedź:</p>
+      {!pickerMode && (
+        <p className={styles.votePrompt}>Głosuj na najlepszą odpowiedź:</p>
+      )}
       <div className={styles.voteList}>
-        {otherAnswers.map((ans) => (
+        {pickableAnswers.map((ans) => (
           <button
             key={ans.id}
             className={[
@@ -70,8 +76,8 @@ export default function FreeTextAnswer({
             {selectedAnswerId === ans.id && <span className={styles.voteCheck}>✓</span>}
           </button>
         ))}
-        {otherAnswers.length === 0 && (
-          <p className={styles.noAnswers}>Brak odpowiedzi do głosowania.</p>
+        {pickableAnswers.length === 0 && (
+          <p className={styles.noAnswers}>Brak odpowiedzi do wyboru.</p>
         )}
       </div>
     </div>

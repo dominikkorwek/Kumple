@@ -179,7 +179,7 @@ public class RoundService {
         if (round.getStatus() == RoundStatus.REVEALING
                 && round.getRoundType() == RoundType.BEST_ANSWER
                 && request.answerId() != null) {
-            return submitBestAnswerVote(round, player, request.answerId());
+            return chooseBestAnswer(round, player, request.answerId());
         }
 
         if (request.selectedAnswerId() != null) {
@@ -217,8 +217,6 @@ public class RoundService {
         if (round.getRoundType() == RoundType.BEST_ANSWER && hasAllExpectedAnswers(round)) {
             round.setStatus(RoundStatus.REVEALING);
             beginAnswerPhase(round);
-        } else if (round.getRoundType() == RoundType.BEST_ANSWER && hasAllBestAnswerVotes(round)) {
-            completeRound(round);
         } else if (round.getRoundType() != RoundType.BEST_ANSWER && hasAllExpectedAnswers(round)) {
             completeRound(round);
         }
@@ -263,10 +261,18 @@ public class RoundService {
         if (!Objects.equals(winner.getRound().getId(), round.getId())) {
             throw new IllegalArgumentException("Odpowiedź nie należy do tej rundy");
         }
+        if (winner.getAuthor() == null) {
+            throw new IllegalArgumentException("Wybierz odpowiedź od innego gracza");
+        }
 
         winner.setCorrect(true);
         round.setWinningAnswer(winner);
         if (winner.getAuthor() != null) {
+            playerAnswerRepository.findByRoundIdAndPlayerPlayerId(round.getId(), winner.getAuthor().getPlayerId())
+                    .ifPresent(playerAnswer -> {
+                        playerAnswer.setAwardedPoint(true);
+                        playerAnswerRepository.save(playerAnswer);
+                    });
             scoreService.addPoint(round.getGameSession(), winner.getAuthor());
         }
         finishRound(round);
@@ -282,12 +288,14 @@ public class RoundService {
             completeVotePersonRound(round);
             return;
         } else if (round.getRoundType() == RoundType.BEST_ANSWER) {
-            int maxVotes = round.getAnswers().stream().mapToInt(Answer::getVoteCount).max().orElse(0);
-            List<Answer> winners = round.getAnswers().stream()
-                    .filter(answer -> answer.getVoteCount() == maxVotes && maxVotes > 0)
-                    .toList();
-            winners.stream().findFirst().ifPresent(round::setWinningAnswer);
-            awardPlayersWhoSelected(round, winners);
+            if (round.getWinningAnswer() == null) {
+                int maxVotes = round.getAnswers().stream().mapToInt(Answer::getVoteCount).max().orElse(0);
+                List<Answer> winners = round.getAnswers().stream()
+                        .filter(answer -> answer.getVoteCount() == maxVotes && maxVotes > 0)
+                        .toList();
+                winners.stream().findFirst().ifPresent(round::setWinningAnswer);
+                awardPlayersWhoSelected(round, winners);
+            }
         } else {
             int maxVotes = round.getAnswers().stream().mapToInt(Answer::getVoteCount).max().orElse(0);
             List<Answer> winners = round.getAnswers().stream()
@@ -372,10 +380,7 @@ public class RoundService {
                 continue;
             }
             boolean matched = false;
-            if (round.getRoundType() == RoundType.BEST_ANSWER) {
-                matched = (playerAnswer.getVotedAnswer() != null && winnerIds.contains(playerAnswer.getVotedAnswer().getId()))
-                        || (playerAnswer.getAnswer() != null && winnerIds.contains(playerAnswer.getAnswer().getId()));
-            } else if (playerAnswer.getAnswer() != null) {
+            if (playerAnswer.getAnswer() != null) {
                 matched = winnerIds.contains(playerAnswer.getAnswer().getId());
             }
             if (matched) {
@@ -384,47 +389,6 @@ public class RoundService {
                 scoreService.addPoint(round.getGameSession(), playerAnswer.getPlayer());
             }
         }
-    }
-
-    private boolean hasAllBestAnswerVotes(Round round) {
-        List<PlayerAnswer> submissions = playerAnswerRepository.findByRoundId(round.getId());
-        if (submissions.isEmpty()) {
-            return false;
-        }
-        long votesCast = submissions.stream().filter(pa -> pa.getVotedAnswer() != null).count();
-        return votesCast >= submissions.size();
-    }
-
-    private RoundResponse submitBestAnswerVote(Round round, Player player, Long answerId) {
-        if (round.getRoundType() != RoundType.BEST_ANSWER || round.getStatus() != RoundStatus.REVEALING) {
-            throw new IllegalStateException("Głosowanie na najlepszą odpowiedź nie jest teraz aktywne");
-        }
-
-        PlayerAnswer submission = playerAnswerRepository.findByRoundIdAndPlayerPlayerId(round.getId(), player.getPlayerId())
-                .orElseThrow(() -> new IllegalArgumentException("Najpierw musisz przesłać swoją odpowiedź"));
-        if (submission.getVotedAnswer() != null) {
-            throw new IllegalArgumentException("Ten gracz już zagłosował w tej rundzie");
-        }
-
-        Answer voted = answerRepository.findById(answerId)
-                .orElseThrow(() -> new IllegalArgumentException("Odpowiedź nie istnieje"));
-        if (!Objects.equals(voted.getRound().getId(), round.getId())) {
-            throw new IllegalArgumentException("Odpowiedź nie należy do tej rundy");
-        }
-        if (voted.getAuthor() != null && voted.getAuthor().getPlayerId().equals(player.getPlayerId())) {
-            throw new IllegalArgumentException("Nie możesz głosować na własną odpowiedź");
-        }
-
-        voted.incrementVoteCount();
-        answerRepository.save(voted);
-        submission.setVotedAnswer(voted);
-        playerAnswerRepository.save(submission);
-
-        if (hasAllBestAnswerVotes(round)) {
-            completeRound(round);
-        }
-
-        return toRoundResponse(roundRepository.save(round));
     }
 
     private void beginAnswerPhase(Round round) {

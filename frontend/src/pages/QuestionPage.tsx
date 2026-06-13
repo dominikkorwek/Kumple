@@ -209,7 +209,7 @@ export default function QuestionPage() {
     handleSubmitAnswer(ans.id, null, null);
   }
 
-  function handleBestAnswerVote(answerId: number) {
+  function handleBestAnswerPick(answerId: number) {
     if (submitted || loading) return;
     setSelectedVoteAnswerId(answerId);
     handleSubmitAnswer(answerId, null, null);
@@ -238,9 +238,146 @@ export default function QuestionPage() {
   const isGuessRound = round ? isGuessRoundType(round.roundType) : false;
   const guessAnsweredCount = round?.answers.reduce((sum, a) => sum + a.voteCount, 0) ?? 0;
   const guessExpectedCount = Math.max(0, totalPlayers - 1);
-  const answeredCount = isGuessRound ? guessAnsweredCount : (round?.answers.filter((a) => a.author !== null).length ?? 0);
-  const answeredTotal = isGuessRound ? guessExpectedCount : totalPlayers;
+  const bestAnswerWritersExpected = round?.roundType === 'BEST_ANSWER'
+    ? Math.max(0, totalPlayers - (round.selectedPlayer ? 1 : 0))
+    : 0;
+  const bestAnswerWritersDone = round?.answers.filter((a) => a.author !== null).length ?? 0;
+  const answeredCount = isGuessRound
+    ? guessAnsweredCount
+    : round?.roundType === 'BEST_ANSWER'
+      ? bestAnswerWritersDone
+      : (round?.answers.filter((a) => a.author !== null).length ?? 0);
+  const answeredTotal = isGuessRound
+    ? guessExpectedCount
+    : round?.roundType === 'BEST_ANSWER'
+      ? bestAnswerWritersExpected
+      : totalPlayers;
   const briefingReadyCount = briefingReadyIds.length;
+
+  function renderBestAnswerSubjectCard(round: RoundResponse) {
+    if (!round.selectedPlayer) return null;
+    return (
+      <Card padded={false}>
+        <div className={styles.playerInfo}>
+          <span className={styles.aboutBadge}>Pytanie dotyczy</span>
+          <div className={styles.playerRow}>
+            <div className={styles.playerAvatar}><PersonIcon /></div>
+            <div>
+              <p className={styles.playerName}>{round.selectedPlayer.nickname}</p>
+              <p className={styles.playerSubtitle}>O tej osobie piszecie odpowiedzi</p>
+            </div>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  function renderBestAnswerRound(round: RoundResponse) {
+    const myAnswer = round.answers.find((a: AnswerResponse) => a.author?.id === playerId);
+    const judgeName = round.selectedPlayer?.nickname ?? 'Wybrany gracz';
+
+    if (round.status === 'WAITING_FOR_ANSWERS') {
+      if (isSelectedPlayer) {
+        return (
+          <>
+            {renderBestAnswerSubjectCard(round)}
+            <h2 className={styles.questionText}>{round.question?.content ?? ''}</h2>
+            <p className={styles.statusHint}>
+              Pozostali gracze piszą odpowiedzi. Ty wybierzesz najlepszą, gdy skończą.
+            </p>
+            {renderSubmitBar(null, WAIT_FOR_OTHERS)}
+          </>
+        );
+      }
+
+      return (
+        <>
+          {renderBestAnswerSubjectCard(round)}
+          <h2 className={styles.questionText}>{round.question?.content ?? ''}</h2>
+          {!submitted && (
+            <p className={styles.statusHint}>Napisz, co Twoim zdaniem pasuje do {judgeName}.</p>
+          )}
+          {submitted && (
+            <p className={styles.waitingMessage}>Odpowiedź wysłana! Oczekiwanie na pozostałych…</p>
+          )}
+          <FreeTextAnswer
+            phase="writing"
+            freeText={freeText}
+            onFreeTextChange={setFreeText}
+            answers={round.answers}
+            selectedAnswerId={null}
+            onSelectAnswer={() => {}}
+            submitted={submitted}
+            currentPlayerId={playerId}
+            loading={loading}
+          />
+          {renderSubmitBar(
+            !submitted ? (
+              <Button fullWidth={false} disabled={!freeText.trim() || loading} onClick={() => handleSubmitAnswer(null, freeText, null)}>
+                {loading ? 'Wysyłanie…' : 'Wyślij odpowiedź'}
+              </Button>
+            ) : null
+          )}
+        </>
+      );
+    }
+
+    if (round.status === 'REVEALING') {
+      if (isSelectedPlayer) {
+        return (
+          <>
+            {renderBestAnswerSubjectCard(round)}
+            <h2 className={styles.questionText}>{round.question?.content ?? ''}</h2>
+            {!submitted && (
+              <p className={styles.statusHint}>Wybierz najlepszą odpowiedź — kliknięcie od razu ją zatwierdza.</p>
+            )}
+            {submitted && (
+              <p className={styles.waitingMessage}>{WAIT_FOR_OTHERS}</p>
+            )}
+            <FreeTextAnswer
+              phase="voting"
+              freeText=""
+              onFreeTextChange={() => {}}
+              answers={round.answers}
+              selectedAnswerId={selectedVoteAnswerId}
+              onSelectAnswer={handleBestAnswerPick}
+              submitted={submitted}
+              currentPlayerId={playerId}
+              loading={loading}
+              pickerMode
+            />
+            {renderSubmitBar(null)}
+          </>
+        );
+      }
+
+      if (!myAnswer) {
+        return (
+          <>
+            {renderBestAnswerSubjectCard(round)}
+            <h2 className={styles.questionText}>{round.question?.content ?? ''}</h2>
+            <p className={styles.waitingMessage}>
+              Nie zdążyłeś wysłać odpowiedzi. {judgeName} wybiera najlepszą z pozostałych…
+            </p>
+            {renderSubmitBar(null, WAIT_FOR_OTHERS)}
+          </>
+        );
+      }
+
+      return (
+        <>
+          {renderBestAnswerSubjectCard(round)}
+          <h2 className={styles.questionText}>{round.question?.content ?? ''}</h2>
+          <p className={styles.waitingMessage}>
+            Oczekiwanie, aż {judgeName} wybierze najlepszą odpowiedź…
+          </p>
+          {renderSubmitBar(null, WAIT_FOR_OTHERS)}
+        </>
+      );
+    }
+
+    return null;
+  }
 
   function renderBriefingContent() {
     if (!round) return null;
@@ -324,52 +461,7 @@ export default function QuestionPage() {
       }
 
       if (rt === 'BEST_ANSWER') {
-        const myAnswer = round.answers.find((a: AnswerResponse) => a.author?.id === playerId);
-        const phase: 'writing' | 'voting' = round.status === 'REVEALING' ? 'voting' : 'writing';
-
-        if (phase === 'voting' && !myAnswer) {
-          return (
-            <>
-              <h2 className={styles.questionText}>{round.question?.content ?? ''}</h2>
-              <p className={styles.waitingMessage}>Nie zdążyłeś wysłać odpowiedzi. Oczekiwanie na pozostałych…</p>
-              {renderSubmitBar(null, WAIT_FOR_OTHERS)}
-            </>
-          );
-        }
-
-        return (
-          <>
-            <h2 className={styles.questionText}>{round.question?.content ?? ''}</h2>
-            {!submitted && (
-              <p className={styles.statusHint}>
-                {phase === 'writing'
-                  ? 'Napisz swoją odpowiedź i wyślij ją.'
-                  : 'Kliknij najlepszą odpowiedź (nie swoją).'}
-              </p>
-            )}
-            {submitted && phase === 'voting' && (
-              <p className={styles.waitingMessage}>{WAIT_FOR_OTHERS}</p>
-            )}
-            <FreeTextAnswer
-              phase={phase}
-              freeText={freeText}
-              onFreeTextChange={setFreeText}
-              answers={round.answers}
-              selectedAnswerId={selectedVoteAnswerId}
-              onSelectAnswer={handleBestAnswerVote}
-              submitted={submitted}
-              currentPlayerId={playerId}
-              loading={loading}
-            />
-            {renderSubmitBar(
-              phase === 'writing' ? (
-                <Button fullWidth={false} disabled={!freeText.trim() || submitted || loading} onClick={() => handleSubmitAnswer(null, freeText, null)}>
-                  {submitted ? 'Wysłano' : loading ? 'Wysyłanie…' : 'Wyślij odpowiedź'}
-                </Button>
-              ) : null
-            )}
-          </>
-        );
+        return renderBestAnswerRound(round);
       }
 
       if (isGuessRoundType(rt)) {

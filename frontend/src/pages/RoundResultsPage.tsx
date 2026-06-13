@@ -111,7 +111,7 @@ export default function RoundResultsPage() {
       return `Większość graczy wskazała „${winningAnswer.content}".`;
     }
     if (round?.roundType === 'BEST_ANSWER') {
-      return `Gracze wybrali „${winningAnswer.content}" jako najlepszą odpowiedź.`;
+      return `Autor odpowiedzi „${winningAnswer.content}" zdobywa punkt — wybrany gracz uznał ją za najlepszą.`;
     }
     return `Większość graczy zagłosowała na „${winningAnswer.content}".`;
   }
