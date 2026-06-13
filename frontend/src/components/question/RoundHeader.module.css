@@ -21,6 +21,11 @@
   color: var(--accent);
 }
 
+.typeLabel {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
 .roundTrack {
   height: 3px;
   width: 120px;

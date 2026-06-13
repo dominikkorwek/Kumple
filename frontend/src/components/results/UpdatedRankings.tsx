@@ -8,7 +8,7 @@ interface UpdatedRankingsProps {
 export default function UpdatedRankings({ entries }: UpdatedRankingsProps) {
   return (
     <div className={styles.widget}>
-      <p className={styles.title}>Updated Rankings</p>
+      <p className={styles.title}>Aktualna klasyfikacja</p>
       <div className={styles.rows}>
         {entries.map((e) => (
           <div key={e.playerId} className={styles.row}>

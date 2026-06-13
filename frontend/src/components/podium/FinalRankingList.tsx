@@ -9,7 +9,7 @@ interface FinalRankingListProps {
 export default function FinalRankingList({ entries, winnerId }: FinalRankingListProps) {
   return (
     <div className={styles.widget}>
-      <p className={styles.title}>Final Rankings</p>
+      <p className={styles.title}>Końcowa klasyfikacja</p>
       <div className={styles.rows}>
         {entries.map((e) => {
           const isWinner = e.playerId === winnerId;

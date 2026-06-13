@@ -32,16 +32,18 @@ public class RoomService {
     }
 
     @Transactional
-    public Room createRoom(String hostNickname, Integer maxPlayers, String hostAuthSubject) {
-        roomRepository.findByHostAuthSubject(hostAuthSubject).ifPresent(oldRoom -> {
-            sessionMap.values().removeIf(s -> s.roomCode().equalsIgnoreCase(oldRoom.getCode()));
-            roomRepository.delete(oldRoom);
-        });
+    public Room createRoom(String hostNickname, Integer maxPlayers, String avatarAnimal, String avatarColor, String hostAuthSubject) {
+        if (hostAuthSubject != null) {
+            roomRepository.findByHostAuthSubject(hostAuthSubject).ifPresent(oldRoom -> {
+                sessionMap.values().removeIf(s -> s.roomCode().equalsIgnoreCase(oldRoom.getCode()));
+                roomRepository.delete(oldRoom);
+            });
+        }
 
         String code = generateCode();
         int max = maxPlayers != null ? maxPlayers : DEFAULT_MAX_PLAYERS;
         Room room = new Room(code, max, hostAuthSubject);
-        room.addPlayer(hostNickname, true);
+        room.addPlayer(hostNickname, true, avatarAnimal, avatarColor);
         return roomRepository.save(room);
     }
 
@@ -51,7 +53,7 @@ public class RoomService {
     }
 
     @Transactional
-    public Player joinRoom(String code, String nickname) {
+    public Player joinRoom(String code, String nickname, String avatarAnimal, String avatarColor) {
         Room room = roomRepository.findByCodeIgnoreCase(code)
                 .orElseThrow(() -> new IllegalArgumentException("Pokój o kodzie " + code + " nie istnieje"));
 
@@ -65,7 +67,7 @@ public class RoomService {
             throw new IllegalArgumentException("Nick \"" + nickname + "\" jest już zajęty w tym pokoju");
         }
 
-        Player player = room.addPlayer(nickname, false);
+        Player player = room.addPlayer(nickname, false, avatarAnimal, avatarColor);
         roomRepository.save(room);
         return player;
     }
@@ -106,7 +108,10 @@ public class RoomService {
         Room room = roomRepository.findByCodeIgnoreCase(code)
                 .orElseThrow(() -> new IllegalArgumentException("Pokój o kodzie " + code + " nie istnieje"));
 
-        if (!hostAuthSubject.equals(room.getHostAuthSubject())) {
+        // when OAuth2 is disabled (anonymous mode) both sides are null - allow all host actions
+        if (hostAuthSubject == null && room.getHostAuthSubject() == null) return;
+
+        if (hostAuthSubject == null || !hostAuthSubject.equals(room.getHostAuthSubject())) {
             throw new AccessDeniedException("Tylko host tego pokoju może wykonać tę akcję");
         }
     }

@@ -1,61 +1,71 @@
 import type { GameSettings } from '../../types/game';
+import type { QuestionCategoryResponse, RoundType } from '../../types/api';
+import CategorySelector from '../settings/CategorySelector';
+import RoundTypeSelector from '../settings/RoundTypeSelector';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
 import styles from './GameSettingsSummary.module.css';
 
-export const GAME_CATEGORIES = ['Personal', 'Preferences', 'Memories', 'Options', 'Future', 'Fun'];
-
 interface GameSettingsSummaryProps {
   settings: GameSettings;
-  selectedCategories: string[];
-  onToggleCategory: (cat: string) => void;
-  onStartGame: () => void;
+  categories: QuestionCategoryResponse[];
+  excludedCategoryIds: number[];
+  excludedRoundTypes: RoundType[];
+  onCategoriesChange?: (excludedCategoryIds: number[]) => void;
+  onRoundTypesChange?: (excludedRoundTypes: RoundType[]) => void;
+  onStartGame?: () => void;
   onCancel: () => void;
+  isHost?: boolean;
+  starting?: boolean;
+  savingSettings?: boolean;
 }
 
 export default function GameSettingsSummary({
   settings,
-  selectedCategories,
-  onToggleCategory,
+  categories,
+  excludedCategoryIds,
+  excludedRoundTypes,
+  onCategoriesChange,
+  onRoundTypesChange,
   onStartGame,
   onCancel,
+  isHost = true,
+  starting = false,
+  savingSettings = false,
 }: GameSettingsSummaryProps) {
+  const disabled = !isHost || savingSettings;
+
   return (
     <>
       <Card padded={false}>
         <div className={styles.section}>
-          <p className={styles.title}>Game Settings</p>
+          <p className={styles.title}>Ustawienia gry</p>
 
-          <div className={styles.categoriesBlock}>
-            <p className={styles.label}>Question Categories</p>
-            <div className={styles.chips}>
-              {GAME_CATEGORIES.map((cat) => (
-                <button
-                  key={cat}
-                  className={[
-                    styles.chip,
-                    selectedCategories.includes(cat) ? styles.chipActive : '',
-                  ].filter(Boolean).join(' ')}
-                  onClick={() => onToggleCategory(cat)}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          </div>
+          <RoundTypeSelector
+            excludedTypes={excludedRoundTypes}
+            onChange={onRoundTypesChange}
+            disabled={disabled}
+          />
+
+          <CategorySelector
+            categories={categories}
+            excludedIds={excludedCategoryIds}
+            onChange={onCategoriesChange}
+            disabled={disabled}
+          />
 
           <div className={styles.settingRows}>
             <div className={styles.settingRow}>
-              <span className={styles.settingLabel}>Win condition</span>
-              <span className={styles.settingValue}>100 points</span>
+              <span className={styles.settingLabel}>Warunek wygranej</span>
+              <span className={styles.settingValue}>{settings.pointLimit} punktów</span>
             </div>
             <div className={styles.settingRow}>
-              <span className={styles.settingLabel}>Answer time</span>
-              <span className={styles.settingValue}>{settings.timeLimitSeconds} seconds</span>
+              <span className={styles.settingLabel}>Czas na odpowiedź</span>
+              <span className={styles.settingValue}>{settings.timePerAnswer} sekund</span>
             </div>
             <div className={styles.settingRow}>
-              <span className={styles.settingLabel}>Room capacity</span>
-              <span className={styles.settingValue}>{settings.maxPlayers} players</span>
+              <span className={styles.settingLabel}>Pojemność pokoju</span>
+              <span className={styles.settingValue}>{settings.maxPlayers} graczy</span>
             </div>
           </div>
         </div>
@@ -63,28 +73,34 @@ export default function GameSettingsSummary({
 
       <Card padded={false}>
         <div className={styles.section}>
-          <p className={styles.title}>Real Time Sync</p>
+          <p className={styles.title}>Synchronizacja na żywo</p>
           <div className={styles.syncRow}>
             <span className={styles.liveDot} />
-            <span className={styles.syncLabel}>Lobby updates live</span>
+            <span className={styles.syncLabel}>Lobby aktualizuje się na żywo</span>
           </div>
           <p className={styles.syncDesc}>
-            Players can join or leave anytime. Host controls when game starts.
+            Gracze mogą dołączać lub wychodzić w dowolnym momencie. Host decyduje, kiedy rozpocząć grę.
           </p>
         </div>
       </Card>
 
       <Card padded={false}>
         <div className={styles.section}>
-          <p className={styles.title}>Host Controls</p>
+          <p className={styles.title}>Panel hosta</p>
           <ul className={styles.controlsList}>
-            <li>Start game when ready</li>
-            <li>Kick players if needed</li>
-            <li>Cancel and close room</li>
+            <li>Rozpocznij grę, gdy wszyscy są gotowi</li>
+            <li>W razie potrzeby wyrzuć graczy</li>
+            <li>Anuluj i zamknij pokój</li>
           </ul>
           <div className={styles.actions}>
-            <Button onClick={onStartGame}>Start Game</Button>
-            <Button variant="ghost" onClick={onCancel}>Cancel</Button>
+            {isHost && (
+              <Button onClick={onStartGame} disabled={starting}>
+                {starting ? 'Rozpoczynanie…' : 'Rozpocznij grę'}
+              </Button>
+            )}
+            <Button variant="ghost" onClick={onCancel}>
+              {isHost ? 'Anuluj' : 'Opuść'}
+            </Button>
           </div>
         </div>
       </Card>

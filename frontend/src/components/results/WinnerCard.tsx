@@ -1,4 +1,3 @@
-import type { PlayerRoundAnswer } from '../../types/game';
 import styles from './WinnerCard.module.css';
 
 function TrophyIcon() {
@@ -9,44 +8,29 @@ function TrophyIcon() {
   );
 }
 
-function PersonIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-      <circle cx="12" cy="8" r="4" />
-      <path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8H4z" />
-    </svg>
-  );
-}
-
 interface WinnerCardProps {
   winningAnswerText: string;
-  winners: PlayerRoundAnswer[];
+  voteCount?: number;
+  headerLabel?: string;
+  subtitle?: string;
 }
 
-export default function WinnerCard({ winningAnswerText, winners }: WinnerCardProps) {
+export default function WinnerCard({ winningAnswerText, voteCount, headerLabel = 'Zwycięska odpowiedź', subtitle }: WinnerCardProps) {
+  const defaultSubtitle = voteCount != null && voteCount > 0
+    ? `${voteCount} ${voteCount === 1 ? 'głos' : voteCount >= 2 && voteCount <= 4 ? 'głosy' : 'głosów'} na tę odpowiedź`
+    : null;
+
   return (
     <div className={styles.card}>
       <div className={styles.header}>
         <TrophyIcon />
-        <span className={styles.headerLabel}>Winning Answer</span>
+        <span className={styles.headerLabel}>{headerLabel}</span>
       </div>
 
       <p className={styles.answer}>{winningAnswerText}</p>
-      <p className={styles.subtitle}>
-        {winners.length} {winners.length === 1 ? 'player' : 'players'} guessed correctly and earned points
-      </p>
-
-      <div className={styles.winners}>
-        {winners.map((w) => (
-          <div key={w.playerId} className={styles.winner}>
-            <div className={styles.avatar}>
-              <PersonIcon />
-            </div>
-            <span className={styles.name}>{w.nickname}</span>
-            <span className={styles.pts}>+{w.pointsEarned} pts</span>
-          </div>
-        ))}
-      </div>
+      {(subtitle ?? defaultSubtitle) && (
+        <p className={styles.subtitle}>{subtitle ?? defaultSubtitle}</p>
+      )}
     </div>
   );
 }

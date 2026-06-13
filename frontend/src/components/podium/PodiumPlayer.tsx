@@ -45,7 +45,7 @@ export default function PodiumPlayer({ player, place }: PodiumPlayerProps) {
           {player.nickname}
         </span>
         <span className={`${styles.pts} ${isWinner ? styles.ptsWinner : ''}`}>
-          {player.totalScore} pts
+          {player.totalScore} pkt
         </span>
       </div>
 

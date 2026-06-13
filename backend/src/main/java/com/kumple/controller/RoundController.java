@@ -1,5 +1,6 @@
 package com.kumple.controller;
 
+import com.kumple.dto.AckBriefingRequest;
 import com.kumple.dto.SubmitAnswerRequest;
 import com.kumple.dto.SubmitQuestionRequest;
 import com.kumple.service.GameService;
@@ -33,6 +34,32 @@ public class RoundController {
         }
     }
 
+    @GetMapping("/{roundId}/classic-setup")
+    public ResponseEntity<?> getClassicSetup(@PathVariable Long roundId, @RequestParam String playerId) {
+        try {
+            return ResponseEntity.ok(roundService.getClassicSetup(roundId, playerId));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(409).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{roundId}/ack-briefing")
+    public ResponseEntity<?> ackBriefing(@PathVariable Long roundId, @RequestBody AckBriefingRequest request) {
+        try {
+            roundService.ackBriefing(roundId, request.playerId());
+            String roomCode = roundService.getRoomCode(roundId);
+            var state = gameService.getState(roomCode);
+            messagingTemplate.convertAndSend("/topic/room/" + roomCode.toUpperCase(), state);
+            return ResponseEntity.ok(state);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(409).body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @PostMapping("/{roundId}/submit-question")
     public ResponseEntity<?> submitQuestion(@PathVariable Long roundId, @RequestBody SubmitQuestionRequest request) {
         try {
@@ -60,6 +87,19 @@ public class RoundController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (IllegalStateException e) {
             return ResponseEntity.status(409).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{roundId}/expire-time")
+    public ResponseEntity<?> expireTime(@PathVariable Long roundId) {
+        try {
+            roundService.expireRoundIfTimedOut(roundId);
+            String roomCode = roundService.getRoomCode(roundId);
+            var state = gameService.getState(roomCode);
+            messagingTemplate.convertAndSend("/topic/room/" + roomCode.toUpperCase(), state);
+            return ResponseEntity.ok(state);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.kumple.model;
 
 import com.kumple.model.enums.GameStatus;
+import com.kumple.model.enums.RoundType;
 import jakarta.persistence.*;
 
 import java.time.Instant;
@@ -46,6 +47,15 @@ public class GameSession {
     )
     private Set<QuestionCategory> excludedCategories = new HashSet<>();
 
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+            name = "game_session_excluded_round_types",
+            joinColumns = @JoinColumn(name = "game_session_id")
+    )
+    @Enumerated(EnumType.STRING)
+    @Column(name = "round_type", length = 40)
+    private Set<RoundType> excludedRoundTypes = new HashSet<>();
+
     @OneToMany(mappedBy = "gameSession", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("roundNumber ASC")
     private List<Round> rounds = new ArrayList<>();
@@ -76,6 +86,7 @@ public class GameSession {
     public Round getCurrentRound() { return currentRound; }
     public void setCurrentRound(Round currentRound) { this.currentRound = currentRound; }
     public Set<QuestionCategory> getExcludedCategories() { return excludedCategories; }
+    public Set<RoundType> getExcludedRoundTypes() { return excludedRoundTypes; }
     public List<Round> getRounds() { return rounds; }
     public List<Score> getScores() { return scores; }
     public Instant getCreatedAt() { return createdAt; }

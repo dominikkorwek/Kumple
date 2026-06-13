@@ -1,5 +1,7 @@
 package com.kumple.dto;
 
 public record JoinRoomRequest(
-        String nickname
+        String nickname,
+        String avatarAnimal,
+        String avatarColor
 ) {}

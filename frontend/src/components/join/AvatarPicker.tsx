@@ -12,6 +12,16 @@ export const AVATAR_COLORS = [
   { id: 'green',  value: '#10b981' },
   { id: 'pink',   value: '#ec4899' },
   { id: 'slate',  value: '#64748b' },
+  { id: 'red',    value: '#ef4444' },
+  { id: 'yellow', value: '#eab308' },
+  { id: 'cyan',   value: '#06b6d4' },
+  { id: 'indigo', value: '#6366f1' },
+  { id: 'rose',   value: '#f43f5e' },
+  { id: 'lime',   value: '#84cc16' },
+  { id: 'amber',  value: '#f59e0b' },
+  { id: 'teal',   value: '#14b8a6' },
+  { id: 'violet', value: '#a855f7' },
+  { id: 'sky',    value: '#0ea5e9' },
 ];
 
 const SVG_PROPS = {
@@ -101,12 +111,12 @@ function FishIcon() {
 }
 
 export const ANIMALS = [
-  { id: 'cat',   label: 'Cat',   Icon: CatIcon },
-  { id: 'panda', label: 'Panda', Icon: PandaIcon },
-  { id: 'dog',   label: 'Dog',   Icon: DogIcon },
-  { id: 'snail', label: 'Snail', Icon: SnailIcon },
-  { id: 'bird',  label: 'Bird',  Icon: BirdIcon },
-  { id: 'fish',  label: 'Fish',  Icon: FishIcon },
+  { id: 'cat',   label: 'Kot',    nickname: 'kot',    gender: 'm' as const, Icon: CatIcon },
+  { id: 'panda', label: 'Panda',  nickname: 'panda',  gender: 'f' as const, Icon: PandaIcon },
+  { id: 'dog',   label: 'Pies',   nickname: 'pies',   gender: 'm' as const, Icon: DogIcon },
+  { id: 'snail', label: 'Ślimak', nickname: 'ślimak', gender: 'm' as const, Icon: SnailIcon },
+  { id: 'bird',  label: 'Ptak',   nickname: 'ptak',   gender: 'm' as const, Icon: BirdIcon },
+  { id: 'fish',  label: 'Ryba',   nickname: 'ryba',   gender: 'f' as const, Icon: FishIcon },
 ];
 
 interface AvatarDisplayProps {
@@ -138,7 +148,7 @@ interface AvatarPickerProps {
 export default function AvatarPicker({ value, onChange }: AvatarPickerProps) {
   return (
     <div className={styles.picker}>
-      <p className={styles.sectionLabel}>Your Avatar</p>
+      <p className={styles.sectionLabel}>Twój awatar</p>
 
       <div className={styles.body}>
         <AvatarDisplay animalId={value.animalId} color={value.color} size={64} />

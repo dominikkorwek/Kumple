@@ -26,7 +26,8 @@ public class RoomController {
 
     @PostMapping
     public ResponseEntity<RoomResponse> createRoom(@RequestBody CreateRoomRequest request, Authentication authentication) {
-        Room room = roomService.createRoom(request.hostNickname(), request.maxPlayers(), authentication.getName());
+        String subject = authentication != null ? authentication.getName() : null;
+        Room room = roomService.createRoom(request.hostNickname(), request.maxPlayers(), request.avatarAnimal(), request.avatarColor(), subject);
         return ResponseEntity.status(HttpStatus.CREATED).body(RoomResponse.from(room));
     }
 
@@ -40,7 +41,7 @@ public class RoomController {
     @PostMapping("/{code}/join")
     public ResponseEntity<?> joinRoom(@PathVariable String code, @RequestBody JoinRoomRequest request) {
         try {
-            Player player = roomService.joinRoom(code, request.nickname());
+            Player player = roomService.joinRoom(code, request.nickname(), request.avatarAnimal(), request.avatarColor());
             Room room = roomService.getRoom(code).orElseThrow();
 
             RoomResponse roomResponse = RoomResponse.from(room);

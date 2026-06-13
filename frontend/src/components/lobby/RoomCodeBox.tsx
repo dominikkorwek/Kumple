@@ -1,5 +1,7 @@
+import QRCode from 'react-qr-code';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
+import { buildInviteLink } from '../../utils/inviteLink';
 import styles from './RoomCodeBox.module.css';
 
 function CopyIcon() {
@@ -13,7 +15,7 @@ function CopyIcon() {
 
 interface RoomCodeBoxProps {
   code: string;
-  inviteLink: string;
+  inviteLink?: string;
 }
 
 export default function RoomCodeBox({ code, inviteLink }: RoomCodeBoxProps) {
@@ -21,25 +23,43 @@ export default function RoomCodeBox({ code, inviteLink }: RoomCodeBoxProps) {
     navigator.clipboard.writeText(text).catch(() => {});
   }
 
+  const link = inviteLink ?? buildInviteLink(code);
+
   return (
     <Card padded={false}>
       <div className={styles.codeRow}>
         <div>
-          <p className={styles.codeLabel}>Room Code</p>
+          <p className={styles.codeLabel}>Kod pokoju</p>
           <p className={styles.codeValue}>{code}</p>
         </div>
         <Button variant="secondary" fullWidth={false} onClick={() => copy(code)}>
-          <CopyIcon /> Copy Code
+          <CopyIcon /> Kopiuj kod
         </Button>
       </div>
 
       <div className={styles.divider} />
 
       <div className={styles.inviteRow}>
-        <input className={styles.inviteInput} value={inviteLink} readOnly />
-        <Button variant="secondary" fullWidth={false} onClick={() => copy(inviteLink)}>
-          <CopyIcon /> Copy Link
+        <input className={styles.inviteInput} value={link} readOnly />
+        <Button variant="secondary" fullWidth={false} onClick={() => copy(link)}>
+          <CopyIcon /> Kopiuj link
         </Button>
+      </div>
+
+      <div className={styles.divider} />
+
+      <div className={styles.qrSection}>
+        <div className={styles.qrFrame}>
+          <QRCode
+            value={link}
+            size={180}
+            bgColor="#FFFFFF"
+            fgColor="#000000"
+            level="M"
+            title={`Zaproszenie do pokoju ${code}`}
+          />
+        </div>
+        <p className={styles.qrHint}>Zeskanuj telefonem, aby dołączyć</p>
       </div>
     </Card>
   );

@@ -10,14 +10,14 @@ export default function VoteDistribution({ votes }: VoteDistributionProps) {
 
   return (
     <div className={styles.widget}>
-      <p className={styles.title}>Vote Distribution</p>
+      <p className={styles.title}>Rozkład głosów</p>
       <div className={styles.rows}>
         {votes.map((v) => (
           <div key={v.optionId} className={styles.row}>
             <div className={styles.labelRow}>
               <span className={styles.label}>{v.optionText}</span>
               <span className={styles.count}>
-                {v.votes} {v.votes === 1 ? 'vote' : 'votes'}
+                {v.votes} {v.votes === 1 ? 'głos' : v.votes >= 2 && v.votes <= 4 ? 'głosy' : 'głosów'}
               </span>
             </div>
             <div className={styles.barTrack}>

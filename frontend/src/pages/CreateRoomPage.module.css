@@ -48,6 +48,10 @@
   border-bottom: 1px solid var(--border);
 }
 
+.sectionBody {
+  padding: var(--space-4) var(--space-5);
+}
+
 .checkboxGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -241,4 +245,9 @@
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--accent);
+}
+
+.errorText {
+  font-size: 0.8rem;
+  color: #e05454;
 }

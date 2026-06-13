@@ -47,25 +47,25 @@ export default function HomePage() {
       <div className={styles.page}>
 
         <div className={styles.hero}>
-          <span className={styles.eyebrow}>Let's Wire Together!</span>
+          <span className={styles.eyebrow}>Połączmy się razem!</span>
           <h1 className={styles.title}>Party Wire</h1>
           <p className={styles.subtitle}>
-            Real-time multiplayer social game. Answer questions, vote,
-            compete and see who knows the group best.
+            Gra towarzyska na żywo. Odpowiadaj na pytania, głosuj,
+            rywalizuj i sprawdź, kto najlepiej zna grupę.
           </p>
         </div>
 
         <div className={styles.actions}>
           <Button onClick={() => navigate('/create-room')}>
-            Create Game Room
+            Utwórz pokój gry
           </Button>
 
-          <p className={styles.orText}>or join existing room</p>
+          <p className={styles.orText}>lub dołącz do istniejącego pokoju (kod, link lub QR)</p>
 
           <div className={styles.joinRow}>
             <div className={styles.joinInput}>
               <Input
-                placeholder="Enter room code (e.g. ABC123)"
+                placeholder="Wpisz kod pokoju (np. ABC123)"
                 value={joinCode}
                 onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
                 onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
@@ -78,7 +78,7 @@ export default function HomePage() {
               onClick={handleJoin}
               disabled={!joinCode.trim()}
             >
-              Join
+              Dołącz
             </Button>
           </div>
         </div>
@@ -86,23 +86,23 @@ export default function HomePage() {
         <div className={styles.features}>
           <button className={`${styles.featureCardBtn} ${showPreview ? styles.featureCardBtnActive : ''}`} onClick={() => setShowPreview(v => !v)}>
             <span className={styles.featureIcon}><IconGame /></span>
-            <h3 className={styles.featureTitle}>Game Preview</h3>
+            <h3 className={styles.featureTitle}>Podgląd gry</h3>
             <p className={styles.featureText}>
-              Players answer social questions about each other. Most voted
-              answer wins points. Track progress on live leaderboard.
+              Gracze odpowiadają na pytania o sobie nawzajem. Najczęściej
+              wybierana odpowiedź zdobywa punkty. Śledź wyniki na tablicy na żywo.
             </p>
             <span className={styles.previewHint}>
-              {showPreview ? 'Hide demo ↑' : 'See live demo ↓'}
+              {showPreview ? 'Ukryj demo ↑' : 'Zobacz demo ↓'}
             </span>
           </button>
 
           <Card padded={false}>
             <div className={styles.featureCard}>
               <span className={styles.featureIcon}><IconGroup /></span>
-              <h3 className={styles.featureTitle}>Multiplayer Lobby</h3>
+              <h3 className={styles.featureTitle}>Lobby wieloosobowe</h3>
               <p className={styles.featureText}>
-                Share invite code or link. Wait for players to join. Host
-                starts game when ready. Supports 3–10 players.
+                Udostępnij kod, link lub kod QR. Poczekaj, aż gracze dołączą. Host
+                startuje grę, gdy wszyscy są gotowi. Od 3 do 12 graczy.
               </p>
             </div>
           </Card>
