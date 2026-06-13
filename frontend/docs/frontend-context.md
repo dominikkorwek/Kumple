@@ -42,7 +42,7 @@ Frontend responsibility:
 
 Project notes:
 - The host can create a game room.
-- Guest players can join using a room code.
+- Guest players can join using a room code, invite link, or by scanning the QR code shown in the lobby.
 - The lobby displays players, room settings, and a start game action.
 - During the game, players answer questions.
 - After each round, the app displays round results and the current ranking.

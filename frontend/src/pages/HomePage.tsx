@@ -60,7 +60,7 @@ export default function HomePage() {
             Utwórz pokój gry
           </Button>
 
-          <p className={styles.orText}>lub dołącz do istniejącego pokoju</p>
+          <p className={styles.orText}>lub dołącz do istniejącego pokoju (kod, link lub QR)</p>
 
           <div className={styles.joinRow}>
             <div className={styles.joinInput}>
@@ -101,7 +101,7 @@ export default function HomePage() {
               <span className={styles.featureIcon}><IconGroup /></span>
               <h3 className={styles.featureTitle}>Lobby wieloosobowe</h3>
               <p className={styles.featureText}>
-                Udostępnij kod lub link. Poczekaj, aż gracze dołączą. Host
+                Udostępnij kod, link lub kod QR. Poczekaj, aż gracze dołączą. Host
                 startuje grę, gdy wszyscy są gotowi. Od 3 do 12 graczy.
               </p>
             </div>

@@ -1,5 +1,7 @@
+import QRCode from 'react-qr-code';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
+import { buildInviteLink } from '../../utils/inviteLink';
 import styles from './RoomCodeBox.module.css';
 
 function CopyIcon() {
@@ -21,7 +23,7 @@ export default function RoomCodeBox({ code, inviteLink }: RoomCodeBoxProps) {
     navigator.clipboard.writeText(text).catch(() => {});
   }
 
-  const link = inviteLink ?? `${window.location.origin}/join?code=${code}`;
+  const link = inviteLink ?? buildInviteLink(code);
 
   return (
     <Card padded={false}>
@@ -42,6 +44,22 @@ export default function RoomCodeBox({ code, inviteLink }: RoomCodeBoxProps) {
         <Button variant="secondary" fullWidth={false} onClick={() => copy(link)}>
           <CopyIcon /> Kopiuj link
         </Button>
+      </div>
+
+      <div className={styles.divider} />
+
+      <div className={styles.qrSection}>
+        <div className={styles.qrFrame}>
+          <QRCode
+            value={link}
+            size={180}
+            bgColor="#FFFFFF"
+            fgColor="#000000"
+            level="M"
+            title={`Zaproszenie do pokoju ${code}`}
+          />
+        </div>
+        <p className={styles.qrHint}>Zeskanuj telefonem, aby dołączyć</p>
       </div>
     </Card>
   );
