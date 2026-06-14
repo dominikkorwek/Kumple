@@ -8,4 +8,5 @@ import java.util.List;
 public interface RoundBriefingAckRepository extends JpaRepository<RoundBriefingAck, Long> {
     List<RoundBriefingAck> findByRoundId(Long roundId);
     boolean existsByRoundIdAndPlayerPlayerId(Long roundId, String playerId);
+    void deleteByRoundGameSessionId(Long gameSessionId);
 }

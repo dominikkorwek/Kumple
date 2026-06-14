@@ -84,6 +84,20 @@ public class GameController {
         }
     }
 
+    @PostMapping("/rooms/{code}/reset-lobby")
+    public ResponseEntity<?> resetToLobby(@PathVariable String code, Authentication authentication) {
+        try {
+            String subject = authentication != null ? authentication.getName() : null;
+            GameStateResponse state = gameService.resetToLobby(code, subject);
+            broadcast(code, state);
+            return ResponseEntity.ok(state);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(409).body(Map.of("error", e.getMessage()));
+        }
+    }
+
     private void broadcast(String code, GameStateResponse state) {
         messagingTemplate.convertAndSend("/topic/room/" + code.toUpperCase(), state);
     }

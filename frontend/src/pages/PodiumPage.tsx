@@ -42,7 +42,7 @@ function toScoreEntries(gs: GameStateResponse): ScoreEntry[] {
 
 export default function PodiumPage() {
   const navigate = useNavigate();
-  const { session } = usePlayer();
+  const { session, clearSession } = usePlayer();
 
   const roomCode = session?.roomCode ?? '';
   const playerId = session?.playerId ?? '';
@@ -51,13 +51,28 @@ export default function PodiumPage() {
   const [winCondition, setWinCondition] = useState(100);
 
   const handleMessage = useCallback((msg: GameStateResponse | { event?: string }) => {
+    if ('event' in msg && msg.event === 'ROOM_CLOSED') {
+      clearSession();
+      navigate('/');
+      return;
+    }
     if (!('status' in msg)) return;
     const gs = msg as GameStateResponse;
+    const stillInRoom = gs.room.players.some((player) => player.id === playerId);
+    if (!stillInRoom) {
+      clearSession();
+      navigate('/');
+      return;
+    }
+    if (gs.status === 'LOBBY') {
+      navigate('/lobby');
+      return;
+    }
     if (gs.status === 'FINISHED' || gs.status === 'IN_PROGRESS') {
       setFinalRanking(toScoreEntries(gs));
       setWinCondition(gs.pointLimit);
     }
-  }, []);
+  }, [clearSession, navigate, playerId]);
 
   useEffect(() => {
     if (!roomCode) { navigate('/'); return; }
@@ -65,8 +80,7 @@ export default function PodiumPage() {
     getGameState(roomCode)
       .then((gs) => {
         if (!cancelled) {
-          setFinalRanking(toScoreEntries(gs));
-          setWinCondition(gs.pointLimit);
+          handleMessage(gs);
         }
       })
       .catch(() => { if (!cancelled) navigate('/'); });

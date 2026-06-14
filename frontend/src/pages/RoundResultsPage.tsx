@@ -26,7 +26,7 @@ function toScoreEntries(gs: GameStateResponse): ScoreEntry[] {
 
 export default function RoundResultsPage() {
   const navigate = useNavigate();
-  const { session } = usePlayer();
+  const { session, clearSession } = usePlayer();
 
   const roomCode = session?.roomCode ?? '';
   const playerId = session?.playerId ?? '';
@@ -37,8 +37,19 @@ export default function RoundResultsPage() {
 
   const handleMessage = useCallback(
     (msg: GameStateResponse | { event?: string }) => {
+      if ('event' in msg && msg.event === 'ROOM_CLOSED') {
+        clearSession();
+        navigate('/');
+        return;
+      }
       if (!('status' in msg)) return;
       const gs = msg as GameStateResponse;
+      const stillInRoom = gs.room.players.some((player) => player.id === playerId);
+      if (!stillInRoom) {
+        clearSession();
+        navigate('/');
+        return;
+      }
       setGameState(gs);
       if (gs.status === 'FINISHED') { navigate('/game/podium'); return; }
       if (gs.currentRound?.status === 'WAITING_FOR_BRIEFING'
@@ -48,14 +59,14 @@ export default function RoundResultsPage() {
         navigate('/game/question');
       }
     },
-    [navigate]
+    [navigate, clearSession, playerId]
   );
 
   useEffect(() => {
     if (!roomCode) { navigate('/'); return; }
     let cancelled = false;
     getGameState(roomCode)
-      .then((gs) => { if (!cancelled) setGameState(gs); })
+      .then((gs) => { if (!cancelled) handleMessage(gs); })
       .catch(() => { if (!cancelled) navigate('/'); });
     connectRoom(roomCode, playerId, (msg) => handleMessage(msg as GameStateResponse), undefined);
     return () => {

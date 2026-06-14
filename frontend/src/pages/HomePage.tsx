@@ -5,6 +5,7 @@ import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
 import GamePreview from '../components/home/GamePreview';
+import { getRoomByCode } from '../services/api';
 import styles from './HomePage.module.css';
 
 function IconGame() {
@@ -34,11 +35,30 @@ export default function HomePage() {
   const navigate = useNavigate();
   const [joinCode, setJoinCode] = useState('');
   const [showPreview, setShowPreview] = useState(false);
+  const [joinError, setJoinError] = useState('');
+  const [joinLoading, setJoinLoading] = useState(false);
 
-  function handleJoin() {
-    const code = joinCode.trim();
-    if (code) {
+  async function handleJoin() {
+    const code = joinCode.trim().toUpperCase();
+    if (!code) return;
+    if (!/^[A-Z0-9]{6}$/.test(code)) {
+      setJoinError('Kod pokoju powinien mieć 6 znaków: litery i cyfry.');
+      return;
+    }
+
+    setJoinLoading(true);
+    setJoinError('');
+    try {
+      const room = await getRoomByCode(code);
+      if (room.currentPlayers >= room.maxPlayers) {
+        setJoinError('Ten pokój jest już pełny.');
+        return;
+      }
       navigate(`/join?code=${encodeURIComponent(code)}`);
+    } catch {
+      setJoinError('Nie znaleziono pokoju o takim kodzie.');
+    } finally {
+      setJoinLoading(false);
     }
   }
 
@@ -67,18 +87,23 @@ export default function HomePage() {
               <Input
                 placeholder="Wpisz kod pokoju (np. ABC123)"
                 value={joinCode}
-                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                onChange={(e) => {
+                  setJoinCode(e.target.value.toUpperCase());
+                  if (joinError) setJoinError('');
+                }}
                 onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
                 maxLength={8}
+                error={!!joinError}
+                helperText={joinError}
               />
             </div>
             <Button
               variant="secondary"
               fullWidth={false}
               onClick={handleJoin}
-              disabled={!joinCode.trim()}
+              disabled={!joinCode.trim() || joinLoading}
             >
-              Dołącz
+              {joinLoading ? 'Sprawdzanie…' : 'Dołącz'}
             </Button>
           </div>
         </div>

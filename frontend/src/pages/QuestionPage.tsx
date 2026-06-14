@@ -15,7 +15,7 @@ import BriefingWaitScreen from '../components/question/BriefingWaitScreen';
 import { submitAnswer, submitQuestion, ackBriefing, getGameState, expireRoundTime } from '../services/api';
 import { connectRoom, disconnect } from '../services/stomp';
 import { usePlayer } from '../context/PlayerContext';
-import { hasSeenRoundType, markRoundTypeSeen } from '../utils/seenRoundTypes';
+import { hasSeenBriefing, markBriefingSeen } from '../utils/seenRoundTypes';
 import {
   isGuessRoundType,
   GUESS_PLAYER_HINT,
@@ -46,7 +46,7 @@ function toScoreEntries(gs: GameStateResponse): ScoreEntry[] {
 
 export default function QuestionPage() {
   const navigate = useNavigate();
-  const { session } = usePlayer();
+  const { session, clearSession } = usePlayer();
 
   const roomCode = session?.roomCode ?? '';
   const playerId = session?.playerId ?? '';
@@ -67,8 +67,19 @@ export default function QuestionPage() {
 
   const handleMessage = useCallback(
     (msg: GameStateResponse | { event?: string }) => {
+      if ('event' in msg && msg.event === 'ROOM_CLOSED') {
+        clearSession();
+        navigate('/');
+        return;
+      }
       if (!('status' in msg)) return;
       const gs = msg as GameStateResponse;
+      const stillInRoom = gs.room.players.some((player) => player.id === playerId);
+      if (!stillInRoom) {
+        clearSession();
+        navigate('/');
+        return;
+      }
       setGameState(gs);
 
       if (gs.status === 'FINISHED') { navigate('/game/podium'); return; }
@@ -111,7 +122,7 @@ export default function QuestionPage() {
         setTimerActive(false);
       }
     },
-    [navigate]
+    [navigate, clearSession, playerId]
   );
 
   useEffect(() => {
@@ -158,14 +169,14 @@ export default function QuestionPage() {
   const selfBriefingReady = briefingReadyIds.includes(playerId);
   const gameSessionId = gameState?.id;
   const needsTutorial = round && gameSessionId
-    ? !hasSeenRoundType(gameSessionId, playerId, round.roundType)
+    ? !hasSeenBriefing(gameSessionId, playerId, round)
     : false;
 
   const handleAckBriefing = useCallback(async (markSeen: boolean) => {
     if (!round || briefingLoading || selfBriefingReady) return;
     setBriefingLoading(true);
     try {
-      if (markSeen && gameSessionId) markRoundTypeSeen(gameSessionId, playerId, round.roundType);
+      if (markSeen && gameSessionId) markBriefingSeen(gameSessionId, playerId, round);
       const gs = await ackBriefing(round.id, playerId);
       handleMessage(gs);
     } catch {

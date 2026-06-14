@@ -56,6 +56,12 @@ export function leaveRoom(code: string, playerId: string): Promise<void> {
   });
 }
 
+export function closeRoom(code: string): Promise<void> {
+  return request(`/api/rooms/${code}/close`, {
+    method: 'POST',
+  });
+}
+
 export function getCategories(): Promise<QuestionCategoryResponse[]> {
   return request('/api/categories');
 }
@@ -73,6 +79,10 @@ export function startGame(code: string): Promise<GameStateResponse> {
 
 export function nextRound(code: string): Promise<GameStateResponse> {
   return request(`/api/rooms/${code}/rounds/next`, { method: 'POST' });
+}
+
+export function resetLobby(code: string): Promise<GameStateResponse> {
+  return request(`/api/rooms/${code}/reset-lobby`, { method: 'POST' });
 }
 
 export function submitAnswer(roundId: number, payload: SubmitAnswerRequest): Promise<GameStateResponse> {

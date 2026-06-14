@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -32,7 +33,6 @@ public class RoundService {
     private final RoundRepository roundRepository;
     private final AnswerRepository answerRepository;
     private final PlayerAnswerRepository playerAnswerRepository;
-    private final PlayerRepository playerRepository;
     private final GameSessionRepository gameSessionRepository;
     private final QuestionService questionService;
     private final ScoreService scoreService;
@@ -42,7 +42,6 @@ public class RoundService {
             RoundRepository roundRepository,
             AnswerRepository answerRepository,
             PlayerAnswerRepository playerAnswerRepository,
-            PlayerRepository playerRepository,
             GameSessionRepository gameSessionRepository,
             QuestionService questionService,
             ScoreService scoreService,
@@ -51,7 +50,6 @@ public class RoundService {
         this.roundRepository = roundRepository;
         this.answerRepository = answerRepository;
         this.playerAnswerRepository = playerAnswerRepository;
-        this.playerRepository = playerRepository;
         this.gameSessionRepository = gameSessionRepository;
         this.questionService = questionService;
         this.scoreService = scoreService;
@@ -73,13 +71,21 @@ public class RoundService {
             question = questionService.getRandomQuestion(session, roundType);
         }
 
-        Round round = roundRepository.save(new Round(session, roundType, roundNumber, selectedPlayer, question, RoundStatus.WAITING_FOR_BRIEFING));
+        RoundStatus initialStatus = shouldSkipBriefing(session, roundType, question)
+                ? statusAfterBriefing(roundType)
+                : RoundStatus.WAITING_FOR_BRIEFING;
+        Round round = roundRepository.save(new Round(session, roundType, roundNumber, selectedPlayer, question, initialStatus));
 
         if (roundType == RoundType.REUSE_QUESTION) {
             createClassicAnswers(round, question);
             round = roundRepository.save(round);
         } else if (roundType == RoundType.VOTE_PERSON) {
             createPlayerAnswers(round);
+            round = roundRepository.save(round);
+        }
+
+        if (round.getStatus() == RoundStatus.WAITING_FOR_ANSWERS) {
+            beginAnswerPhase(round);
             round = roundRepository.save(round);
         }
 
@@ -95,8 +101,7 @@ public class RoundService {
         if (round.getStatus() != RoundStatus.WAITING_FOR_BRIEFING) {
             throw new IllegalStateException("Ta runda nie oczekuje teraz na potwierdzenie instrukcji");
         }
-        Player player = playerRepository.findByPlayerId(playerId)
-                .orElseThrow(() -> new IllegalArgumentException("Gracz nie istnieje"));
+        Player player = requireActivePlayer(round, playerId);
         if (!briefingAckRepository.existsByRoundIdAndPlayerPlayerId(roundId, playerId)) {
             briefingAckRepository.save(new RoundBriefingAck(round, player));
         }
@@ -141,8 +146,10 @@ public class RoundService {
             throw new IllegalStateException("Ta runda nie oczekuje teraz na pytanie lub warianty odpowiedzi");
         }
 
+        Player player = requireSelectedPlayer(round, request.playerId(), "Tylko wskazany gracz może przygotować tę rundę");
+
         if (round.getRoundType() == RoundType.REUSE_QUESTION) {
-            return submitClassicCorrectAnswer(round, request);
+            return submitClassicCorrectAnswer(round, player, request);
         }
 
         if (hasText(request.questionContent())) {
@@ -180,8 +187,7 @@ public class RoundService {
     @Transactional
     public RoundResponse submitAnswer(Long roundId, SubmitAnswerRequest request) {
         Round round = getRound(roundId);
-        Player player = playerRepository.findByPlayerId(request.playerId())
-                .orElseThrow(() -> new IllegalArgumentException("Gracz nie istnieje"));
+        Player player = requireActivePlayer(round, request.playerId());
 
         if (round.getStatus() == RoundStatus.WAITING_FOR_BRIEFING) {
             throw new IllegalStateException("Najpierw wszyscy gracze muszą potwierdzić instrukcje");
@@ -260,9 +266,7 @@ public class RoundService {
         if (round.getStatus() != RoundStatus.WAITING_FOR_QUESTION) {
             throw new IllegalStateException("Ta runda nie oczekuje teraz na wybór poprawnej odpowiedzi");
         }
-        if (round.getSelectedPlayer() == null || !round.getSelectedPlayer().getPlayerId().equals(playerId)) {
-            throw new IllegalArgumentException("Tylko wskazany gracz może przygotować to pytanie");
-        }
+        requireSelectedPlayer(round, playerId, "Tylko wskazany gracz może przygotować to pytanie");
         List<ClassicOptionResponse> options = round.getAnswers().stream()
                 .map(answer -> new ClassicOptionResponse(answer.getId(), answer.getContent()))
                 .toList();
@@ -506,9 +510,34 @@ public class RoundService {
     }
 
     private RoundStatus statusAfterBriefing(Round round) {
-        return switch (round.getRoundType()) {
+        return statusAfterBriefing(round.getRoundType());
+    }
+
+    private RoundStatus statusAfterBriefing(RoundType roundType) {
+        return switch (roundType) {
             case GUESS_PLAYER_ANSWER, REUSE_QUESTION, PLAYER_CREATES_QUESTION -> RoundStatus.WAITING_FOR_QUESTION;
             case VOTE_PERSON, BEST_ANSWER -> RoundStatus.WAITING_FOR_ANSWERS;
+        };
+    }
+
+    private boolean shouldSkipBriefing(GameSession session, RoundType roundType, Question question) {
+        String nextBriefingKey = briefingKey(roundType, question);
+        return session.getRounds().stream()
+                .filter(existingRound -> existingRound.getId() != null)
+                .map(existingRound -> briefingKey(existingRound.getRoundType(), existingRound.getQuestion()))
+                .anyMatch(nextBriefingKey::equals);
+    }
+
+    private String briefingKey(RoundType roundType, Question question) {
+        String category = question != null && question.getCategory() != null
+                ? question.getCategory().getName()
+                : null;
+        if (category != null && !category.isBlank()) {
+            return "category:" + category.trim().toLowerCase(Locale.ROOT);
+        }
+        return switch (roundType) {
+            case GUESS_PLAYER_ANSWER, REUSE_QUESTION, VOTE_PERSON, PLAYER_CREATES_QUESTION, BEST_ANSWER ->
+                    "roundType:" + roundType.name();
         };
     }
 
@@ -539,17 +568,9 @@ public class RoundService {
         }
     }
 
-    private RoundResponse submitClassicCorrectAnswer(Round round, SubmitQuestionRequest request) {
-        if (request.playerId() == null || request.playerId().isBlank()) {
-            throw new IllegalArgumentException("Brak identyfikatora gracza");
-        }
+    private RoundResponse submitClassicCorrectAnswer(Round round, Player player, SubmitQuestionRequest request) {
         if (request.correctAnswerId() == null) {
             throw new IllegalArgumentException("Wybierz poprawną odpowiedź");
-        }
-        Player player = playerRepository.findByPlayerId(request.playerId())
-                .orElseThrow(() -> new IllegalArgumentException("Gracz nie istnieje"));
-        if (round.getSelectedPlayer() == null || !round.getSelectedPlayer().getPlayerId().equals(player.getPlayerId())) {
-            throw new IllegalArgumentException("Tylko wskazany gracz może wybrać poprawną odpowiedź");
         }
 
         Answer correct = answerRepository.findById(request.correctAnswerId())
@@ -563,6 +584,25 @@ public class RoundService {
         round.setStatus(RoundStatus.WAITING_FOR_ANSWERS);
         beginAnswerPhase(round);
         return toRoundResponse(roundRepository.save(round));
+    }
+
+    private Player requireActivePlayer(Round round, String playerId) {
+        if (playerId == null || playerId.isBlank()) {
+            throw new IllegalArgumentException("Brak identyfikatora gracza");
+        }
+        Player player = round.getGameSession().getRoom().findByPlayerId(playerId);
+        if (player == null) {
+            throw new IllegalArgumentException("Gracz nie należy już do tego pokoju");
+        }
+        return player;
+    }
+
+    private Player requireSelectedPlayer(Round round, String playerId, String errorMessage) {
+        Player player = requireActivePlayer(round, playerId);
+        if (round.getSelectedPlayer() == null || !round.getSelectedPlayer().getPlayerId().equals(player.getPlayerId())) {
+            throw new IllegalArgumentException(errorMessage);
+        }
+        return player;
     }
 
     private RoundType chooseRoundType(GameSession session, int roundNumber) {

@@ -4,7 +4,7 @@ import RoomCodeBox from '../components/lobby/RoomCodeBox';
 import PlayerCard from '../components/lobby/PlayerCard';
 import GameSettingsSummary from '../components/lobby/GameSettingsSummary';
 import Button from '../components/ui/Button';
-import { leaveRoom, startGame, getGameState, getCategories, updateSettings } from '../services/api';
+import { closeRoom, leaveRoom, startGame, getGameState, getCategories, updateSettings } from '../services/api';
 import { connectRoom, disconnect } from '../services/stomp';
 import { usePlayer } from '../context/PlayerContext';
 import type { PlayerResponse, RoomResponse, GameStateResponse, GameStatus, QuestionCategoryResponse, RoundType } from '../types/api';
@@ -33,7 +33,7 @@ function toPlayer(p: PlayerResponse, ownId?: string, ownAvatar?: { animalId: str
 
 export default function LobbyPage() {
   const navigate = useNavigate();
-  const { session } = usePlayer();
+  const { session, clearSession } = usePlayer();
 
   const roomCode = session?.roomCode ?? '';
   const playerId = session?.playerId ?? '';
@@ -59,11 +59,18 @@ export default function LobbyPage() {
   const handleMessage = useCallback(
     (msg: RoomResponse | GameStateResponse | { event: string }) => {
       if ('event' in msg && msg.event === 'ROOM_CLOSED') {
+        clearSession();
         navigate('/');
         return;
       }
       if ('status' in msg) {
         const gs = msg as GameStateResponse;
+        const stillInRoom = gs.room.players.some((player) => player.id === playerId);
+        if (!stillInRoom) {
+          clearSession();
+          navigate('/');
+          return;
+        }
         setPlayers(mapPlayers(gs.room.players));
         setSettings(toGameSettings(gs));
         setMaxPlayers(gs.room.maxPlayers);
@@ -75,11 +82,17 @@ export default function LobbyPage() {
       }
       if ('players' in msg) {
         const rm = msg as RoomResponse;
+        const stillInRoom = rm.players.some((player) => player.id === playerId);
+        if (!stillInRoom) {
+          clearSession();
+          navigate('/');
+          return;
+        }
         setPlayers(mapPlayers(rm.players));
         setMaxPlayers(rm.maxPlayers);
       }
     },
-    [navigate, mapPlayers]
+    [navigate, mapPlayers, clearSession, playerId]
   );
 
   useEffect(() => {
@@ -155,6 +168,26 @@ export default function LobbyPage() {
     }
   }
 
+  async function handleExitLobby() {
+    if (!roomCode) {
+      clearSession();
+      navigate('/');
+      return;
+    }
+    try {
+      if (isHost) {
+        await closeRoom(roomCode);
+      } else if (playerId) {
+        await leaveRoom(roomCode, playerId);
+      }
+    } catch {
+      // Even if the server already removed the player or room, clear local session and leave lobby.
+    } finally {
+      clearSession();
+      navigate('/');
+    }
+  }
+
   const emptySlots = Math.max(0, maxPlayers - players.length);
   const fillPct = maxPlayers > 0 ? (players.length / maxPlayers) * 100 : 0;
 
@@ -212,7 +245,7 @@ export default function LobbyPage() {
               onCategoriesChange={isHost ? (ids) => saveSettings({ excludedCategoryIds: ids }) : undefined}
               onRoundTypesChange={isHost ? (types) => saveSettings({ excludedRoundTypes: types }) : undefined}
               onStartGame={isHost ? handleStartGame : undefined}
-              onCancel={() => navigate('/')}
+              onCancel={handleExitLobby}
               isHost={isHost}
               starting={starting}
               savingSettings={savingSettings}

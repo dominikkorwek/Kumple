@@ -91,6 +91,15 @@ public class RoomService {
         return false;
     }
 
+    @Transactional
+    public void closeRoom(String code, String hostAuthSubject) {
+        assertHost(code, hostAuthSubject);
+        Room room = roomRepository.findByCodeIgnoreCase(code)
+                .orElseThrow(() -> new IllegalArgumentException("Pokój o kodzie " + code + " nie istnieje"));
+        sessionMap.values().removeIf(s -> s.roomCode().equalsIgnoreCase(code));
+        roomRepository.delete(room);
+    }
+
     public void registerSession(String sessionId, String roomCode, String playerId) {
         sessionMap.put(sessionId, new SessionInfo(roomCode.toUpperCase(), playerId));
     }

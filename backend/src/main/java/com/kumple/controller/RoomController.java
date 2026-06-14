@@ -78,4 +78,21 @@ public class RoomController {
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
+
+    @PostMapping("/{code}/close")
+    public ResponseEntity<?> closeRoom(@PathVariable String code, Authentication authentication) {
+        try {
+            String subject = authentication != null ? authentication.getName() : null;
+            roomService.closeRoom(code, subject);
+            messagingTemplate.convertAndSend(
+                    "/topic/room/" + code.toUpperCase(),
+                    Map.of("event", "ROOM_CLOSED")
+            );
+            return ResponseEntity.ok(Map.of("message", "Pokój zamknięty"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
+        }
+    }
 }
