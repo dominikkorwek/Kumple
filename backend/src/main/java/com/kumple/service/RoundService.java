@@ -21,7 +21,6 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -36,7 +35,6 @@ public class RoundService {
     private final GameSessionRepository gameSessionRepository;
     private final QuestionService questionService;
     private final ScoreService scoreService;
-    private final RoundBriefingAckRepository briefingAckRepository;
 
     public RoundService(
             RoundRepository roundRepository,
@@ -44,8 +42,7 @@ public class RoundService {
             PlayerAnswerRepository playerAnswerRepository,
             GameSessionRepository gameSessionRepository,
             QuestionService questionService,
-            ScoreService scoreService,
-            RoundBriefingAckRepository briefingAckRepository
+            ScoreService scoreService
     ) {
         this.roundRepository = roundRepository;
         this.answerRepository = answerRepository;
@@ -53,7 +50,6 @@ public class RoundService {
         this.gameSessionRepository = gameSessionRepository;
         this.questionService = questionService;
         this.scoreService = scoreService;
-        this.briefingAckRepository = briefingAckRepository;
     }
 
     @Transactional
@@ -71,9 +67,7 @@ public class RoundService {
             question = questionService.getRandomQuestion(session, roundType);
         }
 
-        RoundStatus initialStatus = shouldSkipBriefing(session, roundType, question)
-                ? statusAfterBriefing(roundType)
-                : RoundStatus.WAITING_FOR_BRIEFING;
+        RoundStatus initialStatus = statusAfterQuestionSetup(roundType);
         Round round = roundRepository.save(new Round(session, roundType, roundNumber, selectedPlayer, question, initialStatus));
 
         if (roundType == RoundType.REUSE_QUESTION) {
@@ -93,25 +87,6 @@ public class RoundService {
         session.setCurrentRoundNumber(roundNumber);
         gameSessionRepository.save(session);
         return round;
-    }
-
-    @Transactional
-    public RoundResponse ackBriefing(Long roundId, String playerId) {
-        Round round = getRound(roundId);
-        if (round.getStatus() != RoundStatus.WAITING_FOR_BRIEFING) {
-            throw new IllegalStateException("Ta runda nie oczekuje teraz na potwierdzenie instrukcji");
-        }
-        Player player = requireActivePlayer(round, playerId);
-        if (!briefingAckRepository.existsByRoundIdAndPlayerPlayerId(roundId, playerId)) {
-            briefingAckRepository.save(new RoundBriefingAck(round, player));
-        }
-        if (hasAllBriefingAcks(round)) {
-            round.setStatus(statusAfterBriefing(round));
-            if (round.getStatus() == RoundStatus.WAITING_FOR_ANSWERS) {
-                beginAnswerPhase(round);
-            }
-        }
-        return toRoundResponse(roundRepository.save(round));
     }
 
     @Transactional
@@ -139,9 +114,6 @@ public class RoundService {
     @Transactional
     public RoundResponse submitQuestion(Long roundId, SubmitQuestionRequest request) {
         Round round = getRound(roundId);
-        if (round.getStatus() == RoundStatus.WAITING_FOR_BRIEFING) {
-            throw new IllegalStateException("Najpierw wszyscy gracze muszą potwierdzić instrukcje");
-        }
         if (round.getStatus() != RoundStatus.WAITING_FOR_QUESTION) {
             throw new IllegalStateException("Ta runda nie oczekuje teraz na pytanie lub warianty odpowiedzi");
         }
@@ -188,10 +160,6 @@ public class RoundService {
     public RoundResponse submitAnswer(Long roundId, SubmitAnswerRequest request) {
         Round round = getRound(roundId);
         Player player = requireActivePlayer(round, request.playerId());
-
-        if (round.getStatus() == RoundStatus.WAITING_FOR_BRIEFING) {
-            throw new IllegalStateException("Najpierw wszyscy gracze muszą potwierdzić instrukcje");
-        }
 
         if (round.getStatus() == RoundStatus.REVEALING
                 && round.getRoundType() == RoundType.BEST_ANSWER
@@ -248,13 +216,10 @@ public class RoundService {
 
     public RoundResponse toRoundResponse(Round round) {
         if (round == null) return null;
-        List<String> readyIds = briefingAckRepository.findByRoundId(round.getId()).stream()
-                .map(ack -> ack.getPlayer().getPlayerId())
-                .toList();
         List<PlayerAnswerResponse> summaries = round.getStatus() == RoundStatus.COMPLETED
                 ? buildPlayerAnswerSummaries(round)
                 : List.of();
-        return RoundResponse.from(round, readyIds, summaries);
+        return RoundResponse.from(round, summaries);
     }
 
     @Transactional(readOnly = true)
@@ -503,41 +468,10 @@ public class RoundService {
         return null;
     }
 
-    private boolean hasAllBriefingAcks(Round round) {
-        long expected = round.getGameSession().getRoom().getPlayers().size();
-        long actual = briefingAckRepository.findByRoundId(round.getId()).size();
-        return expected > 0 && actual >= expected;
-    }
-
-    private RoundStatus statusAfterBriefing(Round round) {
-        return statusAfterBriefing(round.getRoundType());
-    }
-
-    private RoundStatus statusAfterBriefing(RoundType roundType) {
+    private RoundStatus statusAfterQuestionSetup(RoundType roundType) {
         return switch (roundType) {
             case GUESS_PLAYER_ANSWER, REUSE_QUESTION, PLAYER_CREATES_QUESTION -> RoundStatus.WAITING_FOR_QUESTION;
             case VOTE_PERSON, BEST_ANSWER -> RoundStatus.WAITING_FOR_ANSWERS;
-        };
-    }
-
-    private boolean shouldSkipBriefing(GameSession session, RoundType roundType, Question question) {
-        String nextBriefingKey = briefingKey(roundType, question);
-        return session.getRounds().stream()
-                .filter(existingRound -> existingRound.getId() != null)
-                .map(existingRound -> briefingKey(existingRound.getRoundType(), existingRound.getQuestion()))
-                .anyMatch(nextBriefingKey::equals);
-    }
-
-    private String briefingKey(RoundType roundType, Question question) {
-        String category = question != null && question.getCategory() != null
-                ? question.getCategory().getName()
-                : null;
-        if (category != null && !category.isBlank()) {
-            return "category:" + category.trim().toLowerCase(Locale.ROOT);
-        }
-        return switch (roundType) {
-            case GUESS_PLAYER_ANSWER, REUSE_QUESTION, VOTE_PERSON, PLAYER_CREATES_QUESTION, BEST_ANSWER ->
-                    "roundType:" + roundType.name();
         };
     }
 

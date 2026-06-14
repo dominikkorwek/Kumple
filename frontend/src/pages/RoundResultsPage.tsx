@@ -52,8 +52,7 @@ export default function RoundResultsPage() {
       }
       setGameState(gs);
       if (gs.status === 'FINISHED') { navigate('/game/podium'); return; }
-      if (gs.currentRound?.status === 'WAITING_FOR_BRIEFING'
-        || gs.currentRound?.status === 'WAITING_FOR_ANSWERS'
+      if (gs.currentRound?.status === 'WAITING_FOR_ANSWERS'
         || gs.currentRound?.status === 'WAITING_FOR_QUESTION'
         || gs.currentRound?.status === 'REVEALING') {
         navigate('/game/question');

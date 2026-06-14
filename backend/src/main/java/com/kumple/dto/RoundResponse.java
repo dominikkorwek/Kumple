@@ -16,18 +16,13 @@ public record RoundResponse(
         AnswerResponse winningAnswer,
         List<AnswerResponse> answers,
         boolean tiebreakRevote,
-        List<String> briefingReadyPlayerIds,
         List<PlayerAnswerResponse> playerAnswers
 ) {
     public static RoundResponse from(Round round) {
-        return from(round, List.of(), List.of());
+        return from(round, List.of());
     }
 
-    public static RoundResponse from(Round round, List<String> briefingReadyPlayerIds) {
-        return from(round, briefingReadyPlayerIds, List.of());
-    }
-
-    public static RoundResponse from(Round round, List<String> briefingReadyPlayerIds, List<PlayerAnswerResponse> playerAnswers) {
+    public static RoundResponse from(Round round, List<PlayerAnswerResponse> playerAnswers) {
         if (round == null) return null;
         RoundStatus status = round.getStatus();
         boolean hideAnswers = status == RoundStatus.WAITING_FOR_QUESTION;
@@ -43,7 +38,6 @@ public record RoundResponse(
                         ? List.of()
                         : round.getAnswers().stream().map(a -> AnswerResponse.from(a, status)).toList(),
                 round.isTiebreakRevote(),
-                briefingReadyPlayerIds != null ? briefingReadyPlayerIds : List.of(),
                 playerAnswers != null ? playerAnswers : List.of()
         );
     }

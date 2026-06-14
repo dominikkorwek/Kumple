@@ -10,12 +10,9 @@ import QuestionCreateForm from '../components/question/QuestionCreateForm';
 import ClassicQuestionPickForm from '../components/question/ClassicQuestionPickForm';
 import VotePersonGrid from '../components/question/VotePersonGrid';
 import FreeTextAnswer from '../components/question/FreeTextAnswer';
-import RoundTypeTutorial from '../components/question/RoundTypeTutorial';
-import BriefingWaitScreen from '../components/question/BriefingWaitScreen';
-import { submitAnswer, submitQuestion, ackBriefing, getGameState, expireRoundTime } from '../services/api';
+import { submitAnswer, submitQuestion, getGameState, expireRoundTime } from '../services/api';
 import { connectRoom, disconnect } from '../services/stomp';
 import { usePlayer } from '../context/PlayerContext';
-import { hasSeenBriefing, markBriefingSeen } from '../utils/seenRoundTypes';
 import {
   isGuessRoundType,
   GUESS_PLAYER_HINT,
@@ -61,8 +58,6 @@ export default function QuestionPage() {
   const [selectedVoteAnswerId, setSelectedVoteAnswerId] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [briefingLoading, setBriefingLoading] = useState(false);
-  const autoAckRoundId = useRef<number | null>(null);
   const expiredPhaseKey = useRef<string | null>(null);
 
   const handleMessage = useCallback(
@@ -89,13 +84,6 @@ export default function QuestionPage() {
 
       if (round.status === 'COMPLETED') {
         navigate('/game/results');
-        return;
-      }
-
-      if (round.status === 'WAITING_FOR_BRIEFING') {
-        setTimerActive(false);
-        setSubmitted(false);
-        autoAckRoundId.current = null;
         return;
       }
 
@@ -164,35 +152,6 @@ export default function QuestionPage() {
 
     return () => { cancelled = true; };
   }, [timeLeft, timerActive, round, handleMessage]);
-
-  const briefingReadyIds = round?.briefingReadyPlayerIds ?? [];
-  const selfBriefingReady = briefingReadyIds.includes(playerId);
-  const gameSessionId = gameState?.id;
-  const needsTutorial = round && gameSessionId
-    ? !hasSeenBriefing(gameSessionId, playerId, round)
-    : false;
-
-  const handleAckBriefing = useCallback(async (markSeen: boolean) => {
-    if (!round || briefingLoading || selfBriefingReady) return;
-    setBriefingLoading(true);
-    try {
-      if (markSeen && gameSessionId) markBriefingSeen(gameSessionId, playerId, round);
-      const gs = await ackBriefing(round.id, playerId);
-      handleMessage(gs);
-    } catch {
-      // retry allowed
-    } finally {
-      setBriefingLoading(false);
-    }
-  }, [round, briefingLoading, selfBriefingReady, playerId, gameSessionId, handleMessage]);
-
-  useEffect(() => {
-    if (!round || round.status !== 'WAITING_FOR_BRIEFING') return;
-    if (selfBriefingReady || needsTutorial) return;
-    if (autoAckRoundId.current === round.id) return;
-    autoAckRoundId.current = round.id;
-    handleAckBriefing(false);
-  }, [round, selfBriefingReady, needsTutorial, handleAckBriefing]);
 
   async function handleSubmitAnswer(answerId: number | null, ft: string | null, selectedAnswId: number | null) {
     const currentRound = gameState?.currentRound;
@@ -292,7 +251,6 @@ export default function QuestionPage() {
     : round?.roundType === 'BEST_ANSWER'
       ? bestAnswerWritersExpected
       : totalPlayers;
-  const briefingReadyCount = briefingReadyIds.length;
 
   function renderBestAnswerSubjectCard(round: RoundResponse) {
     if (!round.selectedPlayer) return null;
@@ -419,34 +377,8 @@ export default function QuestionPage() {
     return null;
   }
 
-  function renderBriefingContent() {
-    if (!round) return null;
-
-    if (needsTutorial && !selfBriefingReady) {
-      return (
-        <RoundTypeTutorial
-          roundType={round.roundType}
-          loading={briefingLoading}
-          onConfirm={() => handleAckBriefing(true)}
-        />
-      );
-    }
-
-    return (
-      <BriefingWaitScreen
-        readyCount={briefingReadyCount}
-        totalPlayers={totalPlayers}
-        selfReady={selfBriefingReady}
-      />
-    );
-  }
-
   function renderQuestionContent() {
     if (!round) return <div className={styles.loadingText}>Ładowanie rundy…</div>;
-
-    if (round.status === 'WAITING_FOR_BRIEFING') {
-      return renderBriefingContent();
-    }
 
     if (round.status === 'WAITING_FOR_QUESTION') {
       if (isSelectedPlayer) {
@@ -620,22 +552,6 @@ export default function QuestionPage() {
     );
   }
 
-  function renderBriefingBar() {
-    return (
-      <div className={styles.bottomBar}>
-        <div className={styles.answeredInfo}>
-          <PersonIcon />
-          <span>{briefingReadyCount} z {totalPlayers} graczy gotowych</span>
-        </div>
-        {!selfBriefingReady && needsTutorial && (
-          <span className={styles.pendingAction}>Przeczytaj instrukcję powyżej</span>
-        )}
-      </div>
-    );
-  }
-
-  const isBriefing = round?.status === 'WAITING_FOR_BRIEFING';
-
   return (
     <div className={styles.page}>
       <div className={styles.content}>
@@ -652,7 +568,6 @@ export default function QuestionPage() {
 
           <div className={styles.main}>
             {renderQuestionContent()}
-            {isBriefing && renderBriefingBar()}
           </div>
 
           <div className={styles.sidebar}>
@@ -663,13 +578,7 @@ export default function QuestionPage() {
                 <p className={styles.sideTitle}>Status rundy</p>
                 <div className={styles.statusList}>
                   <div className={styles.statusItem}>
-                    <span className={[styles.statusDot, round?.status === 'WAITING_FOR_BRIEFING' ? styles.statusActive : round ? styles.statusDone : styles.statusPending].join(' ')} />
-                    <span className={[styles.statusText, round?.status === 'WAITING_FOR_BRIEFING' ? styles.statusTextActive : styles.statusTextMuted].join(' ')}>
-                      Instrukcje ({briefingReadyCount}/{totalPlayers})
-                    </span>
-                  </div>
-                  <div className={styles.statusItem}>
-                    <span className={[styles.statusDot, round?.status !== 'WAITING_FOR_BRIEFING' && round?.status !== 'WAITING_FOR_QUESTION' ? styles.statusDone : round?.status === 'WAITING_FOR_QUESTION' ? styles.statusActive : styles.statusPending].join(' ')} />
+                    <span className={[styles.statusDot, round?.status === 'WAITING_FOR_QUESTION' ? styles.statusActive : round?.status === 'WAITING_FOR_ANSWERS' || round?.status === 'REVEALING' || round?.status === 'COMPLETED' ? styles.statusDone : styles.statusPending].join(' ')} />
                     <span className={styles.statusText}>
                       {round?.status === 'WAITING_FOR_QUESTION' && isSelectedPlayer
                         ? 'Twoja kolej, utwórz pytanie'

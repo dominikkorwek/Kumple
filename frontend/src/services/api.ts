@@ -103,13 +103,6 @@ export function submitQuestion(roundId: number, payload: SubmitQuestionRequest):
   });
 }
 
-export function ackBriefing(roundId: number, playerId: string): Promise<GameStateResponse> {
-  return request(`/api/rounds/${roundId}/ack-briefing`, {
-    method: 'POST',
-    body: JSON.stringify({ playerId }),
-  });
-}
-
 export function expireRoundTime(roundId: number): Promise<GameStateResponse> {
   return request(`/api/rounds/${roundId}/expire-time`, { method: 'POST' });
 }

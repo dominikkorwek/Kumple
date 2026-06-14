@@ -1,7 +1,6 @@
 export type GameStatus = 'LOBBY' | 'IN_PROGRESS' | 'FINISHED';
 
 export type RoundStatus =
-  | 'WAITING_FOR_BRIEFING'
   | 'WAITING_FOR_QUESTION'
   | 'WAITING_FOR_ANSWERS'
   | 'REVEALING'
@@ -72,7 +71,6 @@ export interface RoundResponse {
   winningAnswer: AnswerResponse | null;
   answers: AnswerResponse[];
   tiebreakRevote: boolean;
-  briefingReadyPlayerIds: string[];
   playerAnswers: PlayerAnswerResponse[];
 }
 
